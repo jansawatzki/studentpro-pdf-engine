@@ -1,0 +1,6 @@
+streamlit
+mistralai
+supabase
+python-dotenv
+openpyxl
+pymupdf

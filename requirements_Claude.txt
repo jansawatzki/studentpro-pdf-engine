@@ -1,0 +1,4 @@
+streamlit
+mistralai
+supabase
+python-dotenv
