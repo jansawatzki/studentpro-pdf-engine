@@ -9,20 +9,16 @@ import openpyxl
 # suppress LibreSSL warning on macOS system Python
 warnings.filterwarnings("ignore", category=UserWarning, module="urllib3")
 
-# Load local .env (no-op on Streamlit Cloud)
-load_dotenv(os.path.join(os.path.dirname(__file__), "config_Claude.env"))
-
-# On Streamlit Cloud, pull secrets into env vars
+# Streamlit Cloud: read from st.secrets — locally: read from .env file
 try:
-    for k in ["MISTRAL_API_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_KEY"]:
-        if k in st.secrets:
-            os.environ[k] = st.secrets[k]
+    MISTRAL_API_KEY      = st.secrets["MISTRAL_API_KEY"]
+    SUPABASE_URL         = st.secrets["SUPABASE_URL"]
+    SUPABASE_SERVICE_KEY = st.secrets["SUPABASE_SERVICE_KEY"]
 except Exception:
-    pass
-
-MISTRAL_API_KEY      = os.getenv("MISTRAL_API_KEY")
-SUPABASE_URL         = os.getenv("SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+    load_dotenv(os.path.join(os.path.dirname(__file__), "config_Claude.env"))
+    MISTRAL_API_KEY      = os.getenv("MISTRAL_API_KEY")
+    SUPABASE_URL         = os.getenv("SUPABASE_URL")
+    SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 
 mistral  = Mistral(api_key=MISTRAL_API_KEY)
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
