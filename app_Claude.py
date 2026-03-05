@@ -77,7 +77,7 @@ def is_already_indexed(filename: str) -> bool:
 st.set_page_config(page_title="student PRO — PDF Engine", layout="wide")
 st.title("student PRO — PDF Knowledge Engine")
 
-tab1, tab2 = st.tabs(["📚 Upload PDF", "🔍 Thema abfragen"])
+tab1, tab2, tab3 = st.tabs(["📚 Upload PDF", "🔍 Thema abfragen", "📋 Projektübersicht"])
 
 # ── Tab 1: Upload ──────────────────────────────────────────────────────────────
 with tab1:
@@ -265,3 +265,102 @@ with tab2:
             except Exception as e:
                 st.error(f"Fehler bei der Suche: {e}")
                 raise
+
+# ── Tab 3: Project Summary for Rachid ─────────────────────────────────────────
+with tab3:
+    st.header("Projektübersicht für Rachid")
+    st.caption("Stand: März 2026 — gebaut von Jan")
+
+    st.markdown("""
+## Was wurde gebaut?
+
+Eine vollständige **PDF-Retrieval-Engine** für student PRO — das Bildungsplattform-Projekt von Philipp Nitsche (NRW-Lehrplaninhalte für Lehrer).
+
+Das System extrahiert automatisch relevante Inhalte aus großen Schulbuch-PDFs und erstellt strukturierte Zusammenfassungen pro Lehrplan-Thema — damit Philipp seine Lehrer-App mit geprüften Inhalten befüllen kann.
+
+---
+
+## Technischer Stack
+
+| Komponente | Technologie | Zweck |
+|---|---|---|
+| **OCR / PDF-Extraktion** | Mistral OCR (`mistral-ocr-latest`) | Text aus Schulbuch-PDFs extrahieren |
+| **Embeddings** | Mistral Embed (`mistral-embed`, 1024-dim) | Seiten semantisch einbetten |
+| **Vektordatenbank** | Supabase pgvector | Vektoren speichern & ähnlichkeitsbasiert suchen |
+| **LLM Zusammenfassung** | Mistral Large (`mistral-large-latest`) | Deutsche Zusammenfassungen mit Seitenverweisen |
+| **Frontend** | Streamlit | Bedienoberfläche für Philipp |
+| **Hosting** | Streamlit Cloud | Öffentlich erreichbar, automatisches Deployment via GitHub |
+| **Versionskontrolle** | GitHub (`jansawatzki/studentpro-pdf-engine`) | Automatisches Re-Deployment bei jedem Push |
+
+---
+
+## Was funktioniert heute (05.03.2026)?
+
+**✅ PDF-Ingestion**
+- PDFs bis 200 MB werden automatisch in 25-Seiten-Batches aufgeteilt (Mistral-Limit: 50 MB)
+- OCR → Chunking → Embedding → Speicherung in Supabase — vollautomatisch
+- Bereits getestet: *Klett „Deutsch kompetent EF"* (169 MB, 109 Seiten, 5 Batches)
+
+**✅ Semantische Suche**
+- Themen-Dropdown aus der Excel-Liste (gelb markierte Themen, NRW-Lehrplan)
+- Vektorbasierte Ähnlichkeitssuche über alle indexierten Bücher
+- Top-10 relevante Seiten werden zurückgegeben
+
+**✅ Zusammenfassung**
+- Mistral Large erstellt strukturierte deutsche Zusammenfassung mit Seitenverweisen
+- Prompt auf NRW-Lehrerkontext optimiert
+
+**✅ Credit-Caching**
+- Ingestion: erkennt bereits indexierte PDFs → kein doppelter OCR-Lauf
+- Suche: Ergebnisse werden in `summary_cache` gespeichert → jede Folgeabfrage kostet €0
+- „Neu generieren"-Button für manuelle Aktualisierung
+
+---
+
+## Erste Testergebnisse (semantische Suche, 3 Testthemen)
+
+| Thema | Top-Treffer | Ähnlichkeit |
+|---|---|---|
+| Sprachvarietäten und ihre gesellschaftliche Bedeutung | Seite 100 — Lexikon Sprache | 88% |
+| Lyrische Texte: Inhalt, Aufbau, sprachliche Gestaltung | Seite 94 — Gattungslexikon Lyrik | 88% |
+| Kommunikationsrollen und -funktionen: Kommunikationsmodelle | Seite 6 — Kommunikationsmodelle | 88% |
+
+Alle drei Testthemen liefern direkte Treffer auf Position 1. Formaler Abnahmetest (Top-10, ≥ 8/10 binäre Bewertung) steht noch aus.
+
+---
+
+## Vereinbartes Abnahmekriterium
+
+> Top-10 Retrieval-Ergebnisse für ein definiertes Lehrplan-Thema,
+> **≥ 8 von 10 Treffern thematisch relevant** (binäre Bewertung: 1/0),
+> stabil über mindestens 5 verschiedene Themen.
+
+---
+
+## Offene Punkte / Nächste Schritte
+
+| Priorität | Aufgabe |
+|---|---|
+| 🔴 Hoch | Formaler Abnahmetest mit Philipp (binäre Bewertung Top-10) |
+| 🔴 Hoch | Weitere Schulbücher von Philipp erhalten und indexieren |
+| 🟡 Mittel | Hybrid Search: semantisch + BM25 (Keyword) kombinieren |
+| 🟡 Mittel | Query Expansion: Thema → 3–5 Synonyme vor der Suche |
+| 🟡 Mittel | Re-Ranking der Top-20 → beste 10 auswählen |
+| 🟢 Later | Export: JSON/CSV für Philipp's Admin-Panel |
+| 🟢 Later | Alle 103 Themen aus Excel laden (aktuell: 3 Testthemen) |
+
+---
+
+## Kosten (Schätzung)
+
+| Posten | Einmalig | Monatlich |
+|---|---|---|
+| OCR (gesamtes Korpus ~9.000 Seiten) | ~€18 | — |
+| Embeddings (Vollkorpus) | ~€2 | — |
+| Zusammenfassungen (103 Themen × 1 Run, dann gecacht) | ~€10 | ~€0 |
+| **Gesamt** | **~€30** | **~€0–5** |
+""")
+
+    st.divider()
+    st.caption("Dieses System wurde vollständig von Jan mit Claude Code als KI-Assistenten gebaut. "
+               "Repository: github.com/jansawatzki/studentpro-pdf-engine")
