@@ -6,7 +6,6 @@ from mistralai import Mistral
 from supabase import create_client
 import openpyxl
 
-# suppress LibreSSL warning on macOS system Python
 warnings.filterwarnings("ignore", category=UserWarning, module="urllib3")
 
 # Streamlit Cloud: read from st.secrets — locally: read from .env file
@@ -26,9 +25,9 @@ supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 YELLOW     = "FF92D050"
 EXCEL_PATH = os.path.join(os.path.dirname(__file__), "themen_Claude.xlsx")
 
+
 @st.cache_data
 def load_yellow_topics():
-    """Read topics highlighted yellow from the Excel file, grouped by sheet."""
     wb = openpyxl.load_workbook(EXCEL_PATH)
     groups = {}
     for sheet in wb.sheetnames:
@@ -44,97 +43,111 @@ def load_yellow_topics():
                     and cell.fill.fgColor.rgb == YELLOW
                     and cell.value
                 ):
-                    topic = str(cell.value).lstrip("• ").strip()
-                    topics.append(topic)
+                    topics.append(str(cell.value).lstrip("• ").strip())
         if topics:
             groups[sheet] = topics
     return groups
 
+
+def get_cached_summary(topic: str):
+    """Return cached summary + sources if this topic was already run."""
+    row = supabase.table("summary_cache").select("*").eq("topic", topic).execute()
+    if row.data:
+        # increment hit counter
+        supabase.table("summary_cache").update(
+            {"hits": row.data[0]["hits"] + 1}
+        ).eq("topic", topic).execute()
+        return row.data[0]["summary"], row.data[0]["sources"]
+    return None, None
+
+
+def save_cached_summary(topic: str, summary: str, sources: list):
+    supabase.table("summary_cache").upsert(
+        {"topic": topic, "summary": summary, "sources": sources, "hits": 1},
+        on_conflict="topic",
+    ).execute()
+
+
+def is_already_indexed(filename: str) -> bool:
+    row = supabase.table("documents").select("id").eq("filename", filename).limit(1).execute()
+    return len(row.data) > 0
+
+
+# ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="student PRO — PDF Engine", layout="wide")
 st.title("student PRO — PDF Knowledge Engine")
 
-tab1, tab2 = st.tabs(["📚 Upload PDF", "🔍 Search"])
+tab1, tab2 = st.tabs(["📚 Upload PDF", "🔍 Thema abfragen"])
 
 # ── Tab 1: Upload ──────────────────────────────────────────────────────────────
 with tab1:
-    st.header("Upload & Index a PDF")
-    uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
+    st.header("PDF hochladen & indexieren")
+    uploaded_file = st.file_uploader("PDF-Datei auswählen", type="pdf")
 
     if uploaded_file:
-        st.write(f"**File:** {uploaded_file.name}  ({uploaded_file.size / 1_000_000:.1f} MB)")
+        st.write(f"**Datei:** {uploaded_file.name}  ({uploaded_file.size / 1_000_000:.1f} MB)")
 
-        if st.button("Process PDF", type="primary"):
+        # ── Cache check for ingestion ──────────────────────────────────────────
+        already_indexed = is_already_indexed(uploaded_file.name)
+        if already_indexed:
+            st.success(
+                f"✅ **'{uploaded_file.name}'** ist bereits indexiert — "
+                f"kein erneuter OCR-Lauf nötig. Mistral-Credits gespart."
+            )
+            if st.button("🔄 Trotzdem neu verarbeiten (überschreiben)"):
+                already_indexed = False  # allow re-run if explicitly requested
+
+        if not already_indexed and st.button("Buch verarbeiten", type="primary"):
             file_bytes = uploaded_file.read()
-
             try:
-                # Step 1: Upload file to Mistral (correct dict format)
-                with st.spinner("Uploading to Mistral OCR..."):
+                with st.spinner("Hochladen zu Mistral OCR..."):
                     mistral_file = mistral.files.upload(
-                        file={
-                            "file_name": uploaded_file.name,
-                            "content": file_bytes,
-                        },
+                        file={"file_name": uploaded_file.name, "content": file_bytes},
                         purpose="ocr",
                     )
                     signed = mistral.files.get_signed_url(file_id=mistral_file.id)
 
-                # Step 2: Run OCR
-                with st.spinner("Running OCR (this may take 1–2 min for large PDFs)..."):
+                with st.spinner("OCR läuft (kann 1–2 Minuten dauern)..."):
                     ocr_response = mistral.ocr.process(
                         model="mistral-ocr-latest",
                         document={"type": "document_url", "document_url": signed.url},
                     )
                     pages = ocr_response.pages
 
-                st.info(f"OCR complete — {len(pages)} pages extracted")
+                st.info(f"OCR abgeschlossen — {len(pages)} Seiten erkannt")
 
-                # Step 3: Embed + store each page
-                progress = st.progress(0, text="Starting embedding...")
+                progress = st.progress(0, text="Starte Einbettung...")
                 skipped = 0
-
                 for i, page in enumerate(pages):
                     text = page.markdown.strip() if page.markdown else ""
                     if not text:
                         skipped += 1
-                        progress.progress((i + 1) / len(pages), text=f"Page {i + 1}/{len(pages)} — skipped (empty)")
+                        progress.progress((i + 1) / len(pages), text=f"Seite {i+1}/{len(pages)} — leer, übersprungen")
                         continue
 
-                    emb = mistral.embeddings.create(
-                        model="mistral-embed",
-                        inputs=[text[:8000]],
-                    )
+                    emb = mistral.embeddings.create(model="mistral-embed", inputs=[text[:8000]])
                     embedding = emb.data[0].embedding
 
                     supabase.table("documents").upsert(
-                        {
-                            "filename": uploaded_file.name,
-                            "page_number": page.index + 1,
-                            "content": text,
-                            "embedding": embedding,
-                        },
+                        {"filename": uploaded_file.name, "page_number": page.index + 1,
+                         "content": text, "embedding": embedding},
                         on_conflict="filename,page_number",
                     ).execute()
 
-                    progress.progress(
-                        (i + 1) / len(pages),
-                        text=f"Page {i + 1}/{len(pages)} stored",
-                    )
+                    progress.progress((i + 1) / len(pages), text=f"Seite {i+1}/{len(pages)} gespeichert")
 
-                # Cleanup Mistral temp file
                 mistral.files.delete(file_id=mistral_file.id)
-
                 st.success(
-                    f"Done! {len(pages) - skipped} pages indexed "
-                    f"({skipped} empty pages skipped) — '{uploaded_file.name}'"
+                    f"Fertig! {len(pages) - skipped} Seiten indexiert "
+                    f"({skipped} leere Seiten übersprungen) — '{uploaded_file.name}'"
                 )
 
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"Fehler: {e}")
                 raise
 
-    # Show indexed documents
     st.divider()
-    st.subheader("Indexed Documents")
+    st.subheader("Indexierte Bücher")
     try:
         rows = supabase.table("documents").select("filename, page_number").execute()
         if rows.data:
@@ -143,19 +156,17 @@ with tab1:
                 files.setdefault(r["filename"], 0)
                 files[r["filename"]] += 1
             for fname, count in sorted(files.items()):
-                st.write(f"- **{fname}** — {count} pages indexed")
+                st.write(f"- **{fname}** — {count} Seiten indexiert")
         else:
-            st.write("No documents indexed yet.")
+            st.write("Noch keine Bücher indexiert.")
     except Exception as e:
-        st.warning(f"Could not load document list: {e}")
+        st.warning(f"Bücherliste konnte nicht geladen werden: {e}")
 
 # ── Tab 2: Search ──────────────────────────────────────────────────────────────
 with tab2:
     st.header("Thema abfragen")
 
     topic_groups = load_yellow_topics()
-
-    # Build flat list with group labels for the selectbox
     options = []
     for sheet, topics in topic_groups.items():
         for t in topics:
@@ -176,69 +187,81 @@ with tab2:
         with col2:
             top_k = st.number_input("Anzahl Ergebnisse", min_value=3, max_value=20, value=10)
 
-    if options and st.button("Relevante Inhalte abrufen", type="primary"):
-
-        try:
-            # Embed the keyword
-            with st.spinner("Embedding search query..."):
-                emb = mistral.embeddings.create(
-                    model="mistral-embed",
-                    inputs=[keyword],
-                )
-                query_embedding = emb.data[0].embedding
-
-            # Vector similarity search
-            with st.spinner("Searching indexed documents..."):
-                result = supabase.rpc(
-                    "match_documents",
-                    {"query_embedding": query_embedding, "match_count": int(top_k)},
-                ).execute()
-                chunks = result.data
-
-            if not chunks:
-                st.warning("No relevant pages found. Make sure you have uploaded and indexed at least one PDF.")
-            else:
-                # Build context
-                context = "\n\n---\n\n".join(
-                    [f"[{r['filename']}, Page {r['page_number']}]\n{r['content']}" for r in chunks]
-                )
-
-                # Generate summary
-                with st.spinner("Generating summary with Mistral Large..."):
-                    response = mistral.chat.complete(
-                        model="mistral-large-latest",
-                        messages=[
-                            {
-                                "role": "system",
-                                "content": (
-                                    "You are a helpful assistant for teachers preparing NRW curriculum content. "
-                                    "Summarize the provided schoolbook excerpts that are relevant to the given topic. "
-                                    "Structure your summary clearly. "
-                                    "Always cite the source filename and page number for every key point. "
-                                    "Write in German."
-                                ),
-                            },
-                            {
-                                "role": "user",
-                                "content": f"Topic: {keyword}\n\nRelevant excerpts:\n{context}",
-                            },
-                        ],
-                    )
-
-                # Display summary
-                st.subheader("Summary")
-                st.markdown(response.choices[0].message.content)
-
-                # Display sources
+        # ── Cache check for summary ────────────────────────────────────────────
+        cached_summary, cached_sources = get_cached_summary(keyword)
+        if cached_summary:
+            st.info("💾 **Aus Cache geladen** — keine Mistral-Credits verbraucht.")
+            st.subheader("Zusammenfassung")
+            st.markdown(cached_summary)
+            if cached_sources:
                 st.divider()
-                st.subheader(f"Source Pages ({len(chunks)} results)")
-                for r in chunks:
-                    with st.expander(
-                        f"**{r['filename']}** — Page {r['page_number']}  "
-                        f"(relevance: {r['similarity']:.0%})"
-                    ):
+                st.subheader(f"Quellseiten ({len(cached_sources)} Treffer)")
+                for r in cached_sources:
+                    with st.expander(f"**{r['filename']}** — Seite {r['page_number']}  (Relevanz: {r['similarity']:.0%})"):
                         st.write(r["content"][:800] + ("..." if len(r["content"]) > 800 else ""))
 
-        except Exception as e:
-            st.error(f"Search error: {e}")
-            raise
+            if st.button("🔄 Neu generieren (Cache überschreiben)"):
+                cached_summary = None  # fall through to fresh run
+
+        if not cached_summary and st.button("Relevante Inhalte abrufen", type="primary"):
+            try:
+                with st.spinner("Suchanfrage wird eingebettet..."):
+                    emb = mistral.embeddings.create(model="mistral-embed", inputs=[keyword])
+                    query_embedding = emb.data[0].embedding
+
+                with st.spinner("Dokumente werden durchsucht..."):
+                    result = supabase.rpc(
+                        "match_documents",
+                        {"query_embedding": query_embedding, "match_count": int(top_k)},
+                    ).execute()
+                    chunks = result.data
+
+                if not chunks:
+                    st.warning("Keine relevanten Seiten gefunden. Bitte zuerst ein Buch hochladen.")
+                else:
+                    context = "\n\n---\n\n".join(
+                        [f"[{r['filename']}, Seite {r['page_number']}]\n{r['content']}" for r in chunks]
+                    )
+
+                    with st.spinner("Zusammenfassung wird erstellt (Mistral Large)..."):
+                        response = mistral.chat.complete(
+                            model="mistral-large-latest",
+                            messages=[
+                                {
+                                    "role": "system",
+                                    "content": (
+                                        "Du bist ein hilfreicher Assistent für Lehrer, die NRW-Lehrplaninhalte aufbereiten. "
+                                        "Fasse die bereitgestellten Schulbuchauszüge zum angegebenen Thema strukturiert zusammen. "
+                                        "Nenne bei jedem wichtigen Punkt die Quelle (Dateiname und Seitenzahl). "
+                                        "Antworte auf Deutsch."
+                                    ),
+                                },
+                                {"role": "user", "content": f"Thema: {keyword}\n\nRelevante Auszüge:\n{context}"},
+                            ],
+                        )
+
+                    summary_text = response.choices[0].message.content
+                    sources = [
+                        {"filename": r["filename"], "page_number": r["page_number"],
+                         "similarity": r["similarity"], "content": r["content"]}
+                        for r in chunks
+                    ]
+
+                    # Save to cache
+                    save_cached_summary(keyword, summary_text, sources)
+
+                    st.subheader("Zusammenfassung")
+                    st.markdown(summary_text)
+
+                    st.divider()
+                    st.subheader(f"Quellseiten ({len(chunks)} Treffer)")
+                    for r in chunks:
+                        with st.expander(
+                            f"**{r['filename']}** — Seite {r['page_number']}  "
+                            f"(Relevanz: {r['similarity']:.0%})"
+                        ):
+                            st.write(r["content"][:800] + ("..." if len(r["content"]) > 800 else ""))
+
+            except Exception as e:
+                st.error(f"Fehler bei der Suche: {e}")
+                raise
