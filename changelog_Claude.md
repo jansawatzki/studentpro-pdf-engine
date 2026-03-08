@@ -158,6 +158,22 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] Lehrplan-Tab: farbige Hervorhebung + PDF-Quellliste
+
+### Added
+- `source_file` Spalte in `topics` Tabelle — speichert Dateiname des Lehrplan-PDFs pro Thema
+- "Verwendete Lehrplan-PDFs" Liste im Lehrplan-Tab: zeigt welche PDFs verarbeitet wurden, Fach und Anzahl extrahierter Themen — analog zur Bücherliste
+- Pinned Themen (Philipps Excel-Auswahl) werden rot hinterlegt angezeigt (`#ff4b4b`, weiße Schrift)
+
+### Changed
+- Beim Speichern von Themen wird `source_file` (Dateiname des hochgeladenen PDFs) mitgespeichert
+- Kernlehrplan Deutsch + Mathematik mit `source_file` backgefüllt
+
+### Files affected
+- `app_Claude.py`, Supabase DB (`topics` Tabelle: neue Spalte `source_file`)
+
+---
+
 ## [2026-03-08] UI-Texte bereinigt
 
 ### Changed

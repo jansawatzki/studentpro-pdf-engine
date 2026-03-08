@@ -242,8 +242,9 @@ with tab_lehrplan:
                 pdf_bytes = uploaded_lehrplan.read()
             with st.spinner("Mistral analysiert den Lehrplan und extrahiert Themen..."):
                 extracted = extract_topics_with_mistral(pdf_bytes, uploaded_lehrplan.name, lehrplan_subject)
-            st.session_state["extracted_topics"]  = extracted
-            st.session_state["extracted_subject"] = lehrplan_subject
+            st.session_state["extracted_topics"]   = extracted
+            st.session_state["extracted_subject"]  = lehrplan_subject
+            st.session_state["extracted_filename"] = uploaded_lehrplan.name
             st.success(f"{len(extracted)} Themen gefunden.")
         except Exception as e:
             st.error(f"Fehler: {e}")
@@ -258,16 +259,36 @@ with tab_lehrplan:
                 selected_new.append(t)
 
         if st.button("✅ Ausgewählte Themen speichern", disabled=not selected_new):
-            subj = st.session_state["extracted_subject"]
+            subj  = st.session_state["extracted_subject"]
+            fname = st.session_state.get("extracted_filename", "")
             for t in selected_new:
                 supabase.table("topics").upsert(
-                    {"topic": t, "subject": subj, "pinned": False, "source": "lehrplan"},
+                    {"topic": t, "subject": subj, "pinned": False,
+                     "source": "lehrplan", "source_file": fname},
                     on_conflict="topic,subject",
                 ).execute()
             st.success(f"{len(selected_new)} Themen gespeichert — ab sofort im Dropdown verfügbar.")
             st.session_state["extracted_topics"] = []
 
     st.divider()
+
+    # ── Verwendete Lehrplan-PDFs ───────────────────────────────────────────────
+    st.subheader("Verwendete Lehrplan-PDFs")
+    lehrplan_files = supabase.table("topics").select("source_file, subject") \
+        .eq("source", "lehrplan").execute().data
+    if lehrplan_files:
+        file_counts = {}
+        for r in lehrplan_files:
+            key = (r["source_file"] or "Unbekannt", r["subject"])
+            file_counts[key] = file_counts.get(key, 0) + 1
+        for (fname, subj), count in sorted(file_counts.items()):
+            st.write(f"- **{fname}** ({subj}) — {count} Themen extrahiert")
+    else:
+        st.write("Noch keine Lehrplan-PDFs verarbeitet.")
+
+    st.divider()
+
+    # ── Gespeicherte Themen ────────────────────────────────────────────────────
     st.subheader("Gespeicherte Themen")
     all_topics = supabase.table("topics").select("subject, topic, pinned, source") \
         .order("pinned", desc=True).order("subject").order("topic").execute().data
@@ -277,8 +298,14 @@ with tab_lehrplan:
             if r["subject"] != current_subject:
                 current_subject = r["subject"]
                 st.markdown(f"**{current_subject}**")
-            prefix = "★ " if r["pinned"] else "　"
-            st.write(f"{prefix}{r['topic']}  _{r['source']}_")
+            if r["pinned"]:
+                st.markdown(
+                    f'<span style="background-color:#ff4b4b; color:white; '
+                    f'padding:2px 10px; border-radius:4px; font-size:0.9em;">★ {r["topic"]}</span>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.write(f"　{r['topic']}")
     else:
         st.write("Noch keine Themen gespeichert.")
 

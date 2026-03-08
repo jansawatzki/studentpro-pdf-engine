@@ -69,6 +69,9 @@ Source of truth for implementation order. Update status after every completed ta
 - [x] Neuer Tab "Lehrplan hochladen" — OCR + Mistral Extraktion + Review + Speichern
 - [x] Dropdown in Tab 2 aus DB, pinned Themen mit ★ oben
 - [x] Kernlehrplan Deutsch + Mathematik verarbeitet
+- [x] Pinned Themen (Philipps Auswahl) rot hinterlegt im Lehrplan-Tab
+- [x] PDF-Quellliste im Lehrplan-Tab (analog zur Bücherliste)
+- [x] `source_file` Spalte in `topics` — trackt welches PDF jedes Thema geliefert hat
 
 ---
 
