@@ -266,6 +266,29 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] Keyword-Matching + Subject-Normalisierung + UI-Fixes
+
+### Added
+- `normalize_subject()` — mappt Mistrals Freitext-Fach ("Mathematik Sekundarstufe II" → "Mathematik") auf DB-Key; verhindert 0-Treffer wenn Mistral leicht abweichende Bezeichnung zurückgibt
+- `_kw()`, `get_excel_topics_keywords()`, `find_matching_excel_topic()` — Keyword-Overlap-Matching (≥55% Überschneidung) statt Exact-String-Match; findet Treffer auch wenn Formulierungen leicht abweichen
+- `TOPIC_PLACEHOLDER` — filtert "Inhalticher Schwerpunkt / konkretes Unterrichtsthema" aus Extraktion + Metriken heraus
+- Qualitätsmetriken zeigen jetzt pro Treffer: Excel-Formulierung vs. Lehrplan-Formulierung (aufklappbar)
+- Speichern setzt jetzt `in_lehrplan=True` für alle Excel-Themen die gematcht wurden
+
+### Fixed
+- Mathe: Keyword-Matching findet jetzt Übereinstimmungen trotz langer/abweichender Formulierungen
+- Fach-Erkennung: `extract_topics_with_mistral()` wendet jetzt `normalize_subject()` an
+
+### Changed
+- "Extraktions-Prompt" → "System-Prompt" im Lehrplan-Tab (konsistent mit Tab 2)
+- System-Prompt Expander unterhalb des Datei-Uploaders verschoben
+- Jan/GitHub Caption aus Tab 3 entfernt
+
+### Files affected
+- `app_Claude.py`
+
+---
+
 ## [2026-03-08] Editierbarer Extraktions-Prompt + Mathe-Matching-Fix + Tab-Update
 
 ### Added

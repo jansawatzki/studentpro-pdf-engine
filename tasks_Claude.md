@@ -87,6 +87,12 @@ Source of truth for implementation order. Update status after every completed ta
 - [x] Editierbarer Extraktions-Prompt (Supabase settings, expander in Lehrplan-Tab)
 - [x] Mathe-Matching-Fix: get_excel_topics_set() nach Fach gefiltert
 - [x] Tab „Wie funktioniert es?" überarbeitet (3 Phasen, beide Prompts, Markierungen)
+- [x] Keyword-Overlap-Matching (≥55%) statt Exact-String — findet Mathe-Themen trotz langer Formulierungen
+- [x] normalize_subject() — robuste Fach-Erkennung auch bei Freitext-Varianten
+- [x] TOPIC_PLACEHOLDER Filter — Dummy-Zeile aus Excel rausgefiltert
+- [x] System-Prompt im Lehrplan-Tab umbenannt + unterhalb Datei-Upload verschoben
+- [x] Jan/GitHub Caption aus Projektübersicht entfernt
+- [x] Speichern markiert jetzt in_lehrplan=True auf gematchten Excel-Themen automatisch
 
 ---
 

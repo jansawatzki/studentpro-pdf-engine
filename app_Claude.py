@@ -1,4 +1,5 @@
 import os
+import re
 import warnings
 import streamlit as st
 from dotenv import load_dotenv
@@ -51,6 +52,66 @@ def load_topics_from_db():
     rows = supabase.table("topics").select("subject, course_type, topic, pinned") \
         .order("pinned", desc=True).order("subject").order("course_type").order("topic").execute()
     return [(r["subject"], r["course_type"] or "", r["topic"], r["pinned"]) for r in rows.data]
+
+
+# ── Subject normalization ───────────────────────────────────────────────────────
+_SUBJECT_ALIASES = {
+    "mathematik": "Mathematik",
+    "mathe":      "Mathematik",
+    "deutsch":    "Deutsch",
+    "german":     "Deutsch",
+}
+
+def normalize_subject(raw: str) -> str:
+    """Map Mistral's free-text subject string to the canonical DB key."""
+    lower = raw.lower()
+    for alias, canonical in _SUBJECT_ALIASES.items():
+        if alias in lower:
+            return canonical
+    return raw.strip()
+
+
+# ── Topic keyword matching ──────────────────────────────────────────────────────
+_STOP = {
+    "und", "oder", "der", "die", "das", "von", "in", "an", "auf", "zu", "mit",
+    "für", "aus", "bei", "nach", "über", "unter", "vor", "durch", "eine", "eines",
+    "einem", "einen", "sowie", "auch", "als", "ihrer", "ihren", "ihrem",
+}
+TOPIC_PLACEHOLDER = "inhalticher schwerpunkt / konkretes unterrichtsthema"
+
+
+def _kw(text: str) -> set[str]:
+    return {w for w in re.split(r'[\s,;:()\[\]→±/]+', text.lower())
+            if len(w) > 3 and w not in _STOP}
+
+
+def get_excel_topics_keywords(subject: str = None) -> dict[str, set[str]]:
+    """Return {topic: keywords} for Excel topics (placeholder row excluded)."""
+    q = supabase.table("topics").select("topic").eq("source", "excel")
+    if subject:
+        q = q.eq("subject", subject)
+    return {
+        r["topic"]: _kw(r["topic"])
+        for r in q.execute().data
+        if r["topic"].lower().strip() != TOPIC_PLACEHOLDER
+    }
+
+
+def find_matching_excel_topic(extracted: str, excel_kw: dict[str, set[str]]) -> str | None:
+    """Return best-matching Excel topic when keyword overlap ≥ 55%, else None."""
+    ext_kw = _kw(extracted)
+    if not ext_kw:
+        return None
+    best_match, best_score = None, 0.0
+    for excel_topic, exc_kw in excel_kw.items():
+        if not exc_kw:
+            continue
+        overlap = len(ext_kw & exc_kw)
+        min_len  = min(len(ext_kw), len(exc_kw))
+        score    = overlap / min_len if min_len else 0
+        if score > best_score:
+            best_score, best_match = score, excel_topic
+    return best_match if best_score >= 0.55 else None
 
 
 DEFAULT_EXTRACTION_PROMPT = """\
@@ -118,7 +179,7 @@ def extract_topics_with_mistral(pdf_bytes: bytes, filename: str) -> tuple[str, d
     subject = "Unbekannt"
     for line in raw.splitlines():
         if line.startswith("FACH:"):
-            subject = line.replace("FACH:", "").strip()
+            subject = normalize_subject(line.replace("FACH:", "").strip())
             break
 
     # Parse course type sections
@@ -196,12 +257,6 @@ def load_lehrplan_from_cache(filename: str):
     return subject, by_course
 
 
-def get_excel_topics_set(subject: str = None) -> set[str]:
-    """Return lowercase set of Excel topics, optionally filtered to a single subject."""
-    q = supabase.table("topics").select("topic").eq("source", "excel")
-    if subject:
-        q = q.eq("subject", subject)
-    return {r["topic"].lower().strip() for r in q.execute().data}
 
 
 # ── Page config ────────────────────────────────────────────────────────────────
@@ -299,8 +354,10 @@ with tab1:
 with tab_lehrplan:
     st.header("Lehrplan hochladen & Themen extrahieren")
 
-    # ── Extraction system prompt editor ───────────────────────────────────────
-    with st.expander("⚙️ Extraktions-Prompt anpassen"):
+    uploaded_lehrplan = st.file_uploader("Lehrplan-PDF auswählen", type="pdf", key="lehrplan_uploader")
+
+    # ── System-Prompt editor ───────────────────────────────────────────────────
+    with st.expander("⚙️ System-Prompt anpassen"):
         current_extraction_prompt = load_extraction_prompt()
         edited_extraction_prompt = st.text_area(
             "System-Prompt für Themen-Extraktion (wird bei jedem Lehrplan-Upload an Mistral übergeben):",
@@ -311,9 +368,6 @@ with tab_lehrplan:
         if st.button("💾 Prompt speichern", key="save_extraction_prompt"):
             save_extraction_prompt(edited_extraction_prompt)
             st.success("Gespeichert.")
-
-    st.divider()
-    uploaded_lehrplan = st.file_uploader("Lehrplan-PDF auswählen", type="pdf", key="lehrplan_uploader")
 
     if uploaded_lehrplan:
         # ── Cache check ────────────────────────────────────────────────────────
@@ -351,19 +405,30 @@ with tab_lehrplan:
     if st.session_state.get("extracted_by_course"):
         by_course_now = st.session_state["extracted_by_course"]
 
-        # ── Quality metrics ────────────────────────────────────────────────────
-        excel_set = get_excel_topics_set(subject=st.session_state.get("extracted_subject"))
-        total_extracted = sum(len(v) for v in by_course_now.values())
-        matched_excel = {t for tlist in by_course_now.values() for t in tlist
-                         if t.lower().strip() in excel_set}
+        # ── Quality metrics (keyword-overlap matching) ─────────────────────────
+        detected_subj = st.session_state.get("extracted_subject")
+        excel_kw = get_excel_topics_keywords(subject=detected_subj)
+        all_extracted = [
+            t for tlist in by_course_now.values() for t in tlist
+            if t.lower().strip() != TOPIC_PLACEHOLDER
+        ]
+        # For each extracted topic find best-matching Excel topic
+        matched_pairs: dict[str, str] = {}   # excel_topic → extracted_topic
+        for ext in all_extracted:
+            match = find_matching_excel_topic(ext, excel_kw)
+            if match and match not in matched_pairs:
+                matched_pairs[match] = ext
+        matched_extracted = set(matched_pairs.values())
+
         col_a, col_b, col_c = st.columns(3)
-        col_a.metric("Extrahierte Themen", total_extracted)
-        col_b.metric("Philipps Excel-Themen", len(excel_set))
-        col_c.metric("Übereinstimmungen", f"{len(matched_excel)} / {len(excel_set)}")
-        if matched_excel:
-            with st.expander(f"✓ {len(matched_excel)} gefundene Übereinstimmungen anzeigen"):
-                for t in sorted(matched_excel):
-                    st.write(f"- {t}")
+        col_a.metric("Extrahierte Themen", len(all_extracted))
+        col_b.metric("Philipps Excel-Themen", len(excel_kw))
+        col_c.metric("Übereinstimmungen", f"{len(matched_pairs)} / {len(excel_kw)}")
+        if matched_pairs:
+            with st.expander(f"✓ {len(matched_pairs)} Übereinstimmungen anzeigen"):
+                for excel_t, ext_t in sorted(matched_pairs.items()):
+                    st.markdown(f"**Excel:** {excel_t}  \n→ *Lehrplan:* {ext_t}")
+                    st.divider()
 
         st.subheader("Themen auswählen")
         st.caption("Alle Themen, die du bestätigst, werden in den Dropdown übernommen. "
@@ -372,7 +437,9 @@ with tab_lehrplan:
         for ct, topics_list in by_course_now.items():
             st.markdown(f"**{ct}** — {len(topics_list)} Themen")
             for t in topics_list:
-                label = f"✓ {t}" if t.lower().strip() in excel_set else t
+                if t.lower().strip() == TOPIC_PLACEHOLDER:
+                    continue
+                label = f"✓ {t}" if t in matched_extracted else t
                 if st.checkbox(label, value=True, key=f"new_topic_{ct}_{t}"):
                     selected_new.append((ct, t))
 
@@ -394,7 +461,11 @@ with tab_lehrplan:
                          "pinned": False, "source": "lehrplan", "source_file": fname},
                         on_conflict="topic,subject,course_type",
                     ).execute()
-            st.success(f"{len(selected_new)} Themen gespeichert — ab sofort im Dropdown verfügbar.")
+            # Mark matched Excel topics as in_lehrplan=True
+            for excel_topic in matched_pairs.keys():
+                supabase.table("topics").update({"in_lehrplan": True}) \
+                    .eq("topic", excel_topic).eq("source", "excel").execute()
+            st.success(f"{len(selected_new)} Themen gespeichert — {len(matched_pairs)} Excel-Themen als 'im Lehrplan' markiert.")
             st.session_state["extracted_by_course"] = {}
 
     st.divider()
@@ -683,9 +754,6 @@ Alle drei Testthemen liefern direkte Treffer auf Position 1. Formaler Abnahmetes
 | **Gesamt** | **~€30** | **~€0–5** |
 """)
 
-    st.divider()
-    st.caption("Dieses System wurde vollständig von Jan mit Claude Code als KI-Assistenten gebaut. "
-               "Repository: github.com/jansawatzki/studentpro-pdf-engine")
 
 # ── Tab 4: How it works ────────────────────────────────────────────────────────
 with tab4:
