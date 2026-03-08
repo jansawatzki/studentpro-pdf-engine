@@ -1,6 +1,7 @@
 """
 Ingestion script — splits large PDFs and indexes them into Supabase.
-Usage: python3 ingest_Claude.py <path_to_pdf>
+Usage: python3 ingest_Claude.py <path_to_pdf> <subject>
+  subject: e.g. "Deutsch" or "Mathematik"
 """
 
 import os
@@ -66,7 +67,7 @@ def ocr_batch(pdf_bytes: bytes, filename: str) -> list[dict]:
     return resp.pages
 
 
-def embed_and_store(pages: list, filename: str, page_offset: int):
+def embed_and_store(pages: list, filename: str, page_offset: int, subject: str):
     """Embed pages in batches and upsert into Supabase."""
     # Collect non-empty pages
     valid = []
@@ -77,6 +78,7 @@ def embed_and_store(pages: list, filename: str, page_offset: int):
                 "filename": filename,
                 "page_number": page_offset + page.index,
                 "content": text[:MAX_CHARS],
+                "subject": subject,
             })
 
     # Embed in batches
@@ -96,7 +98,7 @@ def embed_and_store(pages: list, filename: str, page_offset: int):
     return len(valid)
 
 
-def ingest(pdf_path: str):
+def ingest(pdf_path: str, subject: str):
     filename = os.path.basename(pdf_path)
     doc      = fitz.open(pdf_path)
     total    = len(doc)
@@ -104,6 +106,7 @@ def ingest(pdf_path: str):
 
     print(f"\n{'='*60}")
     print(f"File   : {filename}")
+    print(f"Subject: {subject}")
     print(f"Pages  : {total}")
     print(f"Batches: {-(-total // BATCH_SIZE)} × {BATCH_SIZE} pages")
     print(f"{'='*60}\n")
@@ -124,7 +127,7 @@ def ingest(pdf_path: str):
 
         print(f"  → Embedding + storing...", end=" ", flush=True)
         t0      = time.time()
-        stored  = embed_and_store(pages, filename, start_page)
+        stored  = embed_and_store(pages, filename, start_page, subject)
         total_stored += stored
         print(f"done ({time.time()-t0:.0f}s, {stored} pages stored)")
 
@@ -132,7 +135,8 @@ def ingest(pdf_path: str):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python3 ingest_Claude.py <path_to_pdf>")
+    if len(sys.argv) < 3:
+        print('Usage: python3 ingest_Claude.py <path_to_pdf> <subject>')
+        print('  subject examples: "Deutsch", "Mathematik"')
         sys.exit(1)
-    ingest(sys.argv[1])
+    ingest(sys.argv[1], sys.argv[2])

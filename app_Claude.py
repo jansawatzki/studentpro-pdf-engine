@@ -25,6 +25,12 @@ supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 YELLOW     = "FF92D050"
 EXCEL_PATH = os.path.join(os.path.dirname(__file__), "themen_Claude.xlsx")
 
+# Maps Excel sheet names → subject key stored in DB
+SHEET_TO_SUBJECT = {
+    "Themenliste Deutsch SEK II": "Deutsch",
+    "Themenliste Mathe SEK II":   "Mathematik",
+}
+
 
 @st.cache_data
 def load_yellow_topics():
@@ -45,7 +51,8 @@ def load_yellow_topics():
                 ):
                     topics.append(str(cell.value).lstrip("• ").strip())
         if topics:
-            groups[sheet] = topics
+            subject = SHEET_TO_SUBJECT.get(sheet, sheet)
+            groups[subject] = topics
     return groups
 
 
@@ -177,13 +184,14 @@ with tab2:
     else:
         col1, col2 = st.columns([3, 1])
         with col1:
-            labels = [f"{t}  [{sheet}]" for sheet, t in options]
+            labels = [f"{t}  [{subject}]" for subject, t in options]
             selected_idx = st.selectbox(
                 "Thema auswählen (gelb markierte Themen aus der Excel-Liste):",
                 range(len(labels)),
                 format_func=lambda i: labels[i],
             )
-            keyword = options[selected_idx][1]
+            subject  = options[selected_idx][0]
+            keyword  = options[selected_idx][1]
         with col2:
             top_k = st.number_input("Anzahl Ergebnisse", min_value=3, max_value=20, value=10)
 
@@ -212,7 +220,8 @@ with tab2:
                 with st.spinner("Dokumente werden durchsucht..."):
                     result = supabase.rpc(
                         "match_documents",
-                        {"query_embedding": query_embedding, "match_count": int(top_k)},
+                        {"query_embedding": query_embedding, "match_count": int(top_k),
+                         "subject_filter": subject},
                     ).execute()
                     chunks = result.data
 
