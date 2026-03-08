@@ -310,7 +310,6 @@ with tab2:
 # ── Tab 3: Project Summary ─────────────────────────────────────────────────────
 with tab3:
     st.header("Projektübersicht")
-    st.caption("Stand: März 2026 — gebaut von Jan")
 
     st.markdown("""
 ## Was wurde gebaut?
@@ -409,7 +408,6 @@ Alle drei Testthemen liefern direkte Treffer auf Position 1. Formaler Abnahmetes
 # ── Tab 4: How it works ────────────────────────────────────────────────────────
 with tab4:
     st.header("Wie funktioniert das System?")
-    st.caption("Für Philipp & Rachid — Verständnis der Logik und Qualitätsschrauben")
 
     st.markdown("""
 ## Die zwei Phasen
@@ -489,5 +487,3 @@ Das ist der schnellste Weg zu sehen, wo das System gut ist — und wo wir
 nachbessern müssen.
 """)
 
-    st.divider()
-    st.caption("Fragen oder Verbesserungsideen? Jan erreichen unter: jan@sawatzki.de")

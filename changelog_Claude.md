@@ -96,6 +96,18 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] UI-Texte bereinigt
+
+### Changed
+- Tab 4: Untertitel "Für Philipp & Rachid" entfernt
+- Tab 4: Caption mit Kontakt-E-Mail entfernt
+- Tab 3: Caption "Stand: März 2026 — gebaut von Jan" entfernt
+
+### Files affected
+- `app_Claude.py`
+
+---
+
 ## [2026-03-08] Tab 4 "Wie funktioniert es?" + Projektübersicht generalisiert
 
 ### Added
