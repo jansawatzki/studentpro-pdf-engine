@@ -96,6 +96,22 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] Tab 4 "Wie funktioniert es?" + Projektübersicht generalisiert
+
+### Added
+- Tab 4 "❓ Wie funktioniert es?": erklärt das System auf Deutsch für Philipp & Rachid —
+  Ingestion-Ablauf, Suchlogik, was Mistral aktuell bekommt, Qualitäts-Stellschrauben,
+  Abnahmekriterium
+
+### Changed
+- Tab 3: "für Rachid" aus Header und Titel entfernt → jetzt allgemeine "Projektübersicht"
+  für alle Beteiligten (Rachid, Philipp, Jan)
+
+### Files affected
+- `app_Claude.py`
+
+---
+
 ## [2026-03-08] Book selector with subject grouping
 
 ### Added

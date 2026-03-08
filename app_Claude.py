@@ -98,7 +98,7 @@ def is_already_indexed(filename: str) -> bool:
 st.set_page_config(page_title="student PRO — PDF Engine", layout="wide")
 st.title("student PRO — PDF Knowledge Engine")
 
-tab1, tab2, tab3 = st.tabs(["📚 Upload PDF", "🔍 Thema abfragen", "📋 Projektübersicht"])
+tab1, tab2, tab3, tab4 = st.tabs(["📚 Upload PDF", "🔍 Thema abfragen", "📋 Projektübersicht", "❓ Wie funktioniert es?"])
 
 # ── Tab 1: Upload ──────────────────────────────────────────────────────────────
 with tab1:
@@ -307,9 +307,9 @@ with tab2:
                 st.error(f"Fehler bei der Suche: {e}")
                 raise
 
-# ── Tab 3: Project Summary for Rachid ─────────────────────────────────────────
+# ── Tab 3: Project Summary ─────────────────────────────────────────────────────
 with tab3:
-    st.header("Projektübersicht für Rachid")
+    st.header("Projektübersicht")
     st.caption("Stand: März 2026 — gebaut von Jan")
 
     st.markdown("""
@@ -405,3 +405,89 @@ Alle drei Testthemen liefern direkte Treffer auf Position 1. Formaler Abnahmetes
     st.divider()
     st.caption("Dieses System wurde vollständig von Jan mit Claude Code als KI-Assistenten gebaut. "
                "Repository: github.com/jansawatzki/studentpro-pdf-engine")
+
+# ── Tab 4: How it works ────────────────────────────────────────────────────────
+with tab4:
+    st.header("Wie funktioniert das System?")
+    st.caption("Für Philipp & Rachid — Verständnis der Logik und Qualitätsschrauben")
+
+    st.markdown("""
+## Die zwei Phasen
+
+### 1. Einmalig: Bücher verarbeiten (Ingestion)
+
+Wenn ein PDF hochgeladen wird, passiert folgendes:
+
+```
+PDF → OCR (Mistral liest jede Seite als Text)
+    → jede Seite wird in ~1024 Zahlen umgewandelt ("Embedding")
+    → Zahlen + Text werden in der Datenbank gespeichert
+```
+
+Jede Seite bekommt einen **Zahlenvektor** — eine Art mathematischer Fingerabdruck
+des Inhalts. Seiten über ähnliche Themen haben ähnliche Vektoren. Das passiert
+nur einmal pro Buch und kostet danach nichts mehr.
+
+---
+
+### 2. Bei jeder Suche
+
+```
+Thema ("Lyrische Texte")
+    → wird ebenfalls in Zahlen umgewandelt
+    → Vergleich mit allen gespeicherten Seiten-Vektoren (Cosine Similarity)
+    → Top-10 ähnlichsten Seiten werden ausgewählt
+    → Mistral Large schreibt eine Zusammenfassung aus diesen 10 Seiten
+```
+
+Je kleiner der Abstand zwischen dem Thema-Vektor und einem Seiten-Vektor,
+desto relevanter die Seite. Aktuell sehen wir Ähnlichkeitswerte von ~88% auf
+dem ersten Platz — das ist ein gutes Ergebnis.
+
+---
+
+## Was übergeben wir Mistral aktuell?
+
+Aktuell bekommt Mistral bei der Suche **nur das Thema** — exakt so wie
+Philipp es in der Excel markiert hat.
+
+**Für die Zusammenfassung:**
+- Den Thema-Text
+- Die 10 gefundenen Schulbuch-Seiten als rohen Text
+
+**Was Mistral nicht weiß:**
+- In welchem Fach das Thema liegt
+- Für welche Klassenstufe / Kursart (EF, Q1, Q2)
+- Was der NRW-Kernlehrplan konkret erwartet
+- In welchem Inhaltsfeld das Thema liegt
+
+---
+
+## Stellschrauben für bessere Qualität
+
+| Maßnahme | Aufwand | Effekt |
+|---|---|---|
+| **Anzahl Ergebnisse erhöhen** (top_k: 10 → 15) | sofort | Mehr Kontext für Mistral → vollständigere Zusammenfassungen |
+| **Themen präziser formulieren** | sofort | Semantische Suche reagiert auf Sprache des Schulbuchs |
+| **Fach + Kursart in den Prompt** | klein | Zusammenfassungen gezielter auf NRW-Lehrplan |
+| **Mehr Bücher indexieren** | mittel | Mehr Quellen = mehr Abdeckung |
+| **Hybrid Search** (Semantik + Keyword) | mittel | Findet auch Seiten mit exakten Fachbegriffen |
+| **Query Expansion** | mittel | Thema → 3–5 Synonyme → breitere Suche |
+| **Kleinere Texteinheiten** (Chunks statt ganzer Seiten) | größer | Präzisere Treffer, weniger Rauschen |
+
+---
+
+## Wie Philipp die Qualität prüfen kann
+
+Das vereinbarte Abnahmekriterium:
+
+> Ein Thema aus der Liste auswählen → Top-10 Ergebnisse anschauen →
+> für jede Seite **1** (relevant) oder **0** (nicht relevant) vergeben →
+> Ziel: **≥ 8 von 10**, stabil über mindestens 5 verschiedene Themen.
+
+Das ist der schnellste Weg zu sehen, wo das System gut ist — und wo wir
+nachbessern müssen.
+""")
+
+    st.divider()
+    st.caption("Fragen oder Verbesserungsideen? Jan erreichen unter: jan@sawatzki.de")
