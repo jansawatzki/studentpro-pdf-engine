@@ -96,6 +96,22 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] Book selector with subject grouping
+
+### Added
+- Book selector in Tab 2: all indexed books shown with checkboxes, grouped by subject (Deutsch, Mathematik, etc.), all ticked by default
+- `load_indexed_books()` function: queries distinct `(filename, subject)` pairs live from DB
+- `filename_filter text[]` parameter added to `match_documents` RPC — search is scoped to only the selected books
+- "Relevante Inhalte abrufen" button disabled when no books are selected
+
+### Changed
+- `match_documents` RPC now accepts both `subject_filter` and `filename_filter` (both optional)
+
+### Files affected
+- `app_Claude.py`, Supabase RPC (`match_documents`)
+
+---
+
 ## [2026-03-08] Enable YOLO Mode (bypass permissions permanently)
 
 ### Added

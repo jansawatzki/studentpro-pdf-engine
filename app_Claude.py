@@ -32,6 +32,20 @@ SHEET_TO_SUBJECT = {
 }
 
 
+def load_indexed_books():
+    """Return {subject: [filename, ...]} for all books in the DB."""
+    rows = supabase.table("documents").select("filename, subject").execute()
+    books = {}
+    for r in rows.data:
+        subj = r["subject"] or "Sonstige"
+        fname = r["filename"]
+        if fname not in books.get(subj, []):
+            books.setdefault(subj, [])
+            if fname not in books[subj]:
+                books[subj].append(fname)
+    return books
+
+
 @st.cache_data
 def load_yellow_topics():
     wb = openpyxl.load_workbook(EXCEL_PATH)
@@ -173,6 +187,23 @@ with tab1:
 with tab2:
     st.header("Thema abfragen")
 
+    # ── Book selector ──────────────────────────────────────────────────────────
+    st.subheader("Bücher auswählen")
+    indexed_books = load_indexed_books()
+    selected_books = []
+    if not indexed_books:
+        st.warning("Noch keine Bücher indexiert.")
+    else:
+        for subj in sorted(indexed_books.keys()):
+            st.markdown(f"**{subj}**")
+            for fname in sorted(indexed_books[subj]):
+                checked = st.checkbox(fname, value=True, key=f"book_{fname}")
+                if checked:
+                    selected_books.append(fname)
+        if not selected_books:
+            st.warning("Bitte mindestens ein Buch auswählen.")
+    st.divider()
+
     topic_groups = load_yellow_topics()
     options = []
     for sheet, topics in topic_groups.items():
@@ -211,7 +242,7 @@ with tab2:
             if st.button("🔄 Neu generieren (Cache überschreiben)"):
                 cached_summary = None  # fall through to fresh run
 
-        if not cached_summary and st.button("Relevante Inhalte abrufen", type="primary"):
+        if not cached_summary and st.button("Relevante Inhalte abrufen", type="primary", disabled=not selected_books):
             try:
                 with st.spinner("Suchanfrage wird eingebettet..."):
                     emb = mistral.embeddings.create(model="mistral-embed", inputs=[keyword])
@@ -221,7 +252,8 @@ with tab2:
                     result = supabase.rpc(
                         "match_documents",
                         {"query_embedding": query_embedding, "match_count": int(top_k),
-                         "subject_filter": subject},
+                         "subject_filter": subject,
+                         "filename_filter": selected_books},
                     ).execute()
                     chunks = result.data
 

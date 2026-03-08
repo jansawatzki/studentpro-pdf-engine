@@ -58,6 +58,8 @@ Source of truth for implementation order. Update status after every completed ta
 - [x] Backfill `subject = 'Deutsch'` on all existing Klett pages
 - [x] Add resume logic to `ingest_Claude.py`: skip already-indexed batches on interrupted runs
 - [x] Start indexing `Paul D Oberstufe Gesamtband_2024.pdf` (541MB, 315 pages) with `subject = 'Deutsch'`
+- [x] Book selector in Tab 2: checkboxes per book, grouped by subject, all selected by default
+- [x] `filename_filter` parameter added to `match_documents` RPC — search scoped to selected books only
 
 ---
 
