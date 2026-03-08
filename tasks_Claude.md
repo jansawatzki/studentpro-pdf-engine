@@ -95,6 +95,7 @@ Source of truth for implementation order. Update status after every completed ta
 - [x] Speichern markiert jetzt in_lehrplan=True auf gematchten Excel-Themen automatisch
 - [x] Tab 3 „Projektübersicht" auf Stand 08.03.2026 aktualisiert
 - [x] masterplan_Claude.md: Phasen-Status aktualisiert (0b–0d ✅)
+- [x] nextstepsandquality_Claude.md: priorisierte Next Steps + Qualitäts-Guide erstellt
 
 ---
 

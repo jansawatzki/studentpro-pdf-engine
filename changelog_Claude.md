@@ -266,6 +266,16 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] nextstepsandquality_Claude.md erstellt
+
+### Added
+- `nextstepsandquality_Claude.md` — priorisierte Next-Steps-Liste + Qualitäts-Verbesserungsplan, geschrieben für technische und nicht-technische Leser (14-year-old level), mit Begründung und Aufwandsschätzung für jeden Punkt
+
+### Files affected
+- `nextstepsandquality_Claude.md` (neu)
+
+---
+
 ## [2026-03-08] Projektübersicht + Masterplan aktualisiert
 
 ### Changed
