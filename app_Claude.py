@@ -47,14 +47,15 @@ def load_indexed_books():
 
 
 def load_topics_from_db():
-    """Return list of (subject, topic, pinned) — pinned topics first."""
-    rows = supabase.table("topics").select("subject, topic, pinned") \
-        .order("pinned", desc=True).order("topic").execute()
-    return [(r["subject"], r["topic"], r["pinned"]) for r in rows.data]
+    """Return list of (subject, course_type, topic, pinned) — pinned first."""
+    rows = supabase.table("topics").select("subject, course_type, topic, pinned") \
+        .order("pinned", desc=True).order("subject").order("course_type").order("topic").execute()
+    return [(r["subject"], r["course_type"] or "", r["topic"], r["pinned"]) for r in rows.data]
 
 
-def extract_topics_with_mistral(pdf_bytes: bytes, filename: str) -> tuple[str, list[str]]:
-    """OCR a Lehrplan PDF, auto-detect subject, extract topics. Returns (subject, topics)."""
+def extract_topics_with_mistral(pdf_bytes: bytes, filename: str) -> tuple[str, dict]:
+    """OCR a Lehrplan PDF, auto-detect subject + course types, extract topics.
+    Returns (subject, {"EF": [...], "GK": [...], "LK": [...]})."""
     mfile = mistral.files.upload(
         file={"file_name": filename, "content": pdf_bytes}, purpose="ocr"
     )
@@ -73,23 +74,48 @@ def extract_topics_with_mistral(pdf_bytes: bytes, filename: str) -> tuple[str, l
             {
                 "role": "system",
                 "content": (
-                    "Du bist Experte für NRW-Lehrpläne (Sekundarstufe II). "
-                    "Deine Antwort besteht aus zwei Teilen, getrennt durch '---':\n"
-                    "Teil 1: Das Schulfach des Lehrplans in einem Wort (z.B. Deutsch, Mathematik, Biologie).\n"
-                    "Teil 2: Alle konkreten inhaltlichen Schwerpunkte und Unterrichtsthemen — "
-                    "eines pro Zeile, ohne Nummerierung, ohne Erklärungen, ohne Überschriften. "
-                    "Nur konkrete Inhaltsthemen, keine allgemeinen Kompetenzformulierungen."
+                    "Du bist Experte für NRW-Lehrpläne (Sekundarstufe II).\n"
+                    "Analysiere den Lehrplan und gib deine Antwort exakt in diesem Format zurück:\n\n"
+                    "FACH: [Fachname, z.B. Deutsch]\n\n"
+                    "=== EF ===\n"
+                    "- Thema 1\n"
+                    "- Thema 2\n\n"
+                    "=== GK ===\n"
+                    "- Thema 1\n\n"
+                    "=== LK ===\n"
+                    "- Thema 1\n\n"
+                    "Regeln:\n"
+                    "- EF = Einführungsphase, GK = Qualifikationsphase Grundkurs, LK = Qualifikationsphase Leistungskurs\n"
+                    "- Nur konkrete inhaltliche Schwerpunkte, keine allgemeinen Kompetenzformulierungen\n"
+                    "- Wenn ein Kurstyp im Dokument nicht vorkommt, lass ihn weg\n"
+                    "- Keine Nummerierung, keine Erklärungen außer den Themen selbst"
                 ),
             },
             {"role": "user", "content": f"Lehrplan-Text:\n{full_text[:40000]}"},
         ],
     )
     raw = resp.choices[0].message.content.strip()
-    parts = raw.split("---", 1)
-    subject = parts[0].strip() if len(parts) > 1 else "Unbekannt"
-    topic_lines = parts[1] if len(parts) > 1 else raw
-    topics = [line.strip("•–- ").strip() for line in topic_lines.splitlines() if line.strip()]
-    return subject, topics
+
+    # Parse subject
+    subject = "Unbekannt"
+    for line in raw.splitlines():
+        if line.startswith("FACH:"):
+            subject = line.replace("FACH:", "").strip()
+            break
+
+    # Parse course type sections
+    by_course: dict[str, list[str]] = {}
+    current = None
+    for line in raw.splitlines():
+        stripped = line.strip()
+        if stripped in ("=== EF ===", "=== GK ===", "=== LK ==="):
+            current = stripped.replace("=", "").strip()
+        elif current and stripped.startswith("-"):
+            topic = stripped.lstrip("- ").strip()
+            if topic:
+                by_course.setdefault(current, []).append(topic)
+
+    return subject, by_course
 
 
 DEFAULT_SYSTEM_PROMPT = """\
@@ -240,45 +266,48 @@ with tab_lehrplan:
         try:
             with st.spinner("OCR läuft..."):
                 pdf_bytes = uploaded_lehrplan.read()
-            with st.spinner("Mistral erkennt Fach und extrahiert Themen..."):
-                detected_subject, extracted = extract_topics_with_mistral(pdf_bytes, uploaded_lehrplan.name)
-            st.session_state["extracted_topics"]   = extracted
-            st.session_state["extracted_subject"]  = detected_subject
-            st.session_state["extracted_filename"] = uploaded_lehrplan.name
-            st.success(f"Fach erkannt: **{detected_subject}** — {len(extracted)} Themen gefunden.")
+            with st.spinner("Mistral erkennt Fach, Kurstyp und extrahiert Themen..."):
+                detected_subject, by_course = extract_topics_with_mistral(pdf_bytes, uploaded_lehrplan.name)
+            total = sum(len(v) for v in by_course.values())
+            st.session_state["extracted_by_course"] = by_course
+            st.session_state["extracted_subject"]   = detected_subject
+            st.session_state["extracted_filename"]  = uploaded_lehrplan.name
+            course_summary = ", ".join(f"{ct}: {len(ts)}" for ct, ts in by_course.items())
+            st.success(f"Fach erkannt: **{detected_subject}** — {total} Themen ({course_summary})")
         except Exception as e:
             st.error(f"Fehler: {e}")
             raise
 
-    if st.session_state.get("extracted_topics"):
+    if st.session_state.get("extracted_by_course"):
         st.subheader("Themen auswählen")
         st.caption("Alle Themen, die du bestätigst, werden in den Dropdown übernommen.")
-        selected_new = []
-        for t in st.session_state["extracted_topics"]:
-            if st.checkbox(t, value=True, key=f"new_topic_{t}"):
-                selected_new.append(t)
+        selected_new = []  # list of (course_type, topic)
+        for ct, topics_list in st.session_state["extracted_by_course"].items():
+            st.markdown(f"**{ct}** — {len(topics_list)} Themen")
+            for t in topics_list:
+                if st.checkbox(t, value=True, key=f"new_topic_{ct}_{t}"):
+                    selected_new.append((ct, t))
 
         if st.button("✅ Ausgewählte Themen speichern", disabled=not selected_new):
             subj  = st.session_state["extracted_subject"]
             fname = st.session_state.get("extracted_filename", "")
-            # Load already-pinned topics to avoid overwriting pinned=true
-            pinned_set = {
-                r["topic"] for r in
-                supabase.table("topics").select("topic").eq("pinned", True).execute().data
+            pinned_keys = {
+                (r["topic"], r["subject"], r["course_type"])
+                for r in supabase.table("topics").select("topic, subject, course_type")
+                    .eq("pinned", True).execute().data
             }
-            for t in selected_new:
-                if t in pinned_set:
-                    # Preserve pinned status — only update source file info
+            for ct, t in selected_new:
+                if (t, subj, ct) in pinned_keys:
                     supabase.table("topics").update({"source_file": fname}) \
-                        .eq("topic", t).eq("subject", subj).execute()
+                        .eq("topic", t).eq("subject", subj).eq("course_type", ct).execute()
                 else:
                     supabase.table("topics").upsert(
-                        {"topic": t, "subject": subj, "pinned": False,
-                         "source": "lehrplan", "source_file": fname},
-                        on_conflict="topic,subject",
+                        {"topic": t, "subject": subj, "course_type": ct,
+                         "pinned": False, "source": "lehrplan", "source_file": fname},
+                        on_conflict="topic,subject,course_type",
                     ).execute()
             st.success(f"{len(selected_new)} Themen gespeichert — ab sofort im Dropdown verfügbar.")
-            st.session_state["extracted_topics"] = []
+            st.session_state["extracted_by_course"] = {}
 
     st.divider()
 
@@ -300,28 +329,36 @@ with tab_lehrplan:
 
     # ── Gespeicherte Themen ────────────────────────────────────────────────────
     st.subheader("Gespeicherte Themen")
-    all_topics = supabase.table("topics").select("subject, topic, pinned") \
-        .order("pinned", desc=True).order("topic").execute().data
+    all_topics = supabase.table("topics").select("subject, course_type, topic, pinned") \
+        .order("pinned", desc=True).order("subject").order("course_type").order("topic").execute().data
     if all_topics:
-        # Group by subject
-        by_subject = {}
+        # Group by subject → course_type
+        by_subject: dict[str, dict[str, list]] = {}
         for r in all_topics:
-            by_subject.setdefault(r["subject"], []).append(r)
+            subj = r["subject"]
+            ct   = r["course_type"] or "Sonstige"
+            by_subject.setdefault(subj, {}).setdefault(ct, []).append(r)
+
+        CT_ORDER = ["EF", "GK", "LK", "Sonstige"]
         for subj in sorted(by_subject.keys()):
-            rows = by_subject[subj]
-            n_pinned = sum(1 for r in rows if r["pinned"])
-            label = f"{subj} — {len(rows)} Themen ({n_pinned} von Philipp markiert)"
-            with st.expander(label):
-                for r in rows:
-                    if r["pinned"]:
-                        st.markdown(
-                            f'<div style="background-color:#ff4b4b; color:white; '
-                            f'padding:4px 12px; border-radius:4px; margin:2px 0; '
-                            f'font-size:0.9em;">★ {r["topic"]}</div>',
-                            unsafe_allow_html=True,
-                        )
-                    else:
-                        st.write(f"　{r['topic']}")
+            ct_dict = by_subject[subj]
+            total   = sum(len(v) for v in ct_dict.values())
+            n_pin   = sum(1 for v in ct_dict.values() for r in v if r["pinned"])
+            with st.expander(f"{subj} — {total} Themen ({n_pin} von Philipp markiert)"):
+                for ct in CT_ORDER:
+                    if ct not in ct_dict:
+                        continue
+                    st.markdown(f"**{ct}**")
+                    for r in ct_dict[ct]:
+                        if r["pinned"]:
+                            st.markdown(
+                                f'<div style="background-color:#ff4b4b; color:white; '
+                                f'padding:4px 12px; border-radius:4px; margin:2px 0; '
+                                f'font-size:0.9em;">★ {r["topic"]}</div>',
+                                unsafe_allow_html=True,
+                            )
+                        else:
+                            st.write(f"　{r['topic']}")
     else:
         st.write("Noch keine Themen gespeichert.")
 
@@ -347,7 +384,7 @@ with tab2:
             st.warning("Bitte mindestens ein Buch auswählen.")
     st.divider()
 
-    options = load_topics_from_db()  # list of (subject, topic, pinned)
+    options = load_topics_from_db()  # list of (subject, course_type, topic, pinned)
 
     if not options:
         st.warning("Noch keine Themen geladen. Bitte zuerst einen Lehrplan hochladen.")
@@ -355,16 +392,17 @@ with tab2:
         col1, col2 = st.columns([3, 1])
         with col1:
             labels = [
-                f"{'★ ' if pinned else ''}{topic}  [{subject}]"
-                for subject, topic, pinned in options
+                f"{'★ ' if pinned else ''}{topic}  [{subject} · {course_type}]"
+                for subject, course_type, topic, pinned in options
             ]
             selected_idx = st.selectbox(
                 "Thema auswählen:",
                 range(len(labels)),
                 format_func=lambda i: labels[i],
             )
-            subject = options[selected_idx][0]
-            keyword = options[selected_idx][1]
+            subject     = options[selected_idx][0]
+            course_type = options[selected_idx][1]
+            keyword     = options[selected_idx][2]
         with col2:
             top_k = st.number_input("Anzahl Ergebnisse", min_value=3, max_value=20, value=10)
 

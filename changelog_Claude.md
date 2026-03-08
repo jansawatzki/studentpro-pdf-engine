@@ -158,6 +158,27 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] course_type (EF/GK/LK) + auto-detection + full re-migration
+
+### Added
+- `course_type` column in `topics` table (EF / GK / LK)
+- New unique constraint: `topic + subject + course_type`
+- Mistral auto-detects subject AND course type from Lehrplan PDF — returns topics grouped by EF/GK/LK
+- Extraction review UI shows topics per detected course type with checkboxes
+- Dropdown labels now show `[Deutsch · EF]` format
+
+### Changed
+- `extract_topics_with_mistral()` returns `(subject, {"EF": [...], "GK": [...], "LK": [...]})` instead of flat list
+- `load_topics_from_db()` includes course_type in returned tuples
+- All Excel topics re-migrated with correct course_type — 93 topics total across 6 course groups
+- Pinned protection includes course_type in key — no cross-course-type collisions
+- Topics overview: grouped subject → EF → GK → LK in expanders
+
+### Files affected
+- `app_Claude.py`, Supabase DB (`topics` table: new column + constraint)
+
+---
+
 ## [2026-03-08] Lehrplan-Tab: fixes + expandable subjects + auto-detect Fach
 
 ### Fixed
