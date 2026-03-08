@@ -266,6 +266,22 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] Lehrplan-Cache + Qualitätsmetriken
+
+### Added
+- `load_lehrplan_from_cache()` — prüft ob PDF bereits extrahiert wurde (`source='lehrplan', source_file=filename`); lädt Topics aus DB statt Mistral neu aufzurufen
+- `get_excel_topics_set()` — gibt lowercase Set aller Excel-Themen zurück für Matching
+- "💾 Aus Cache geladen" Banner im Lehrplan-Tab wenn PDF schon verarbeitet wurde
+- "🔄 Neu extrahieren" Button zum manuellen Cache-Bypass (löscht lehrplan-Zeilen, startet neu)
+- Qualitätsmetriken nach Extraktion: 3 Metriken-Spalten — extrahierte Themen, Philipps Excel-Themen, Übereinstimmungen (X / Y)
+- Aufklappbare Liste aller Übereinstimmungen
+- ✓ Prefix für Excel-Übereinstimmungen in der Themen-Auswahlliste
+
+### Files affected
+- `app_Claude.py`
+
+---
+
 ## [2026-03-08] Grüne Hervorhebung für Kernlehrplan-Themen
 
 ### Added

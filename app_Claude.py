@@ -165,6 +165,25 @@ def is_already_indexed(filename: str) -> bool:
     return len(row.data) > 0
 
 
+def load_lehrplan_from_cache(filename: str):
+    """Return (subject, by_course_dict) if this PDF was already extracted, else (None, None)."""
+    rows = supabase.table("topics").select("subject, course_type, topic") \
+        .eq("source", "lehrplan").eq("source_file", filename).execute().data
+    if not rows:
+        return None, None
+    subject = rows[0]["subject"]
+    by_course: dict[str, list[str]] = {}
+    for r in rows:
+        by_course.setdefault(r["course_type"] or "EF", []).append(r["topic"])
+    return subject, by_course
+
+
+def get_excel_topics_set() -> set[str]:
+    """Return lowercase set of all topics from Philipp's Excel."""
+    rows = supabase.table("topics").select("topic").eq("source", "excel").execute().data
+    return {r["topic"].lower().strip() for r in rows}
+
+
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="student PRO — PDF Engine", layout="wide")
 st.title("student PRO — PDF Knowledge Engine")
@@ -262,30 +281,65 @@ with tab_lehrplan:
 
     uploaded_lehrplan = st.file_uploader("Lehrplan-PDF auswählen", type="pdf", key="lehrplan_uploader")
 
-    if uploaded_lehrplan and st.button("Themen extrahieren", type="primary"):
-        try:
-            with st.spinner("OCR läuft..."):
-                pdf_bytes = uploaded_lehrplan.read()
-            with st.spinner("Mistral erkennt Fach, Kurstyp und extrahiert Themen..."):
-                detected_subject, by_course = extract_topics_with_mistral(pdf_bytes, uploaded_lehrplan.name)
-            total = sum(len(v) for v in by_course.values())
-            st.session_state["extracted_by_course"] = by_course
-            st.session_state["extracted_subject"]   = detected_subject
+    if uploaded_lehrplan:
+        # ── Cache check ────────────────────────────────────────────────────────
+        cached_subject, cached_by_course = load_lehrplan_from_cache(uploaded_lehrplan.name)
+        if cached_by_course:
+            st.info("💾 **Aus Cache geladen** — keine Mistral-Credits verbraucht.")
+            st.session_state["extracted_by_course"] = cached_by_course
+            st.session_state["extracted_subject"]   = cached_subject
             st.session_state["extracted_filename"]  = uploaded_lehrplan.name
-            course_summary = ", ".join(f"{ct}: {len(ts)}" for ct, ts in by_course.items())
-            st.success(f"Fach erkannt: **{detected_subject}** — {total} Themen ({course_summary})")
-        except Exception as e:
-            st.error(f"Fehler: {e}")
-            raise
+            total = sum(len(v) for v in cached_by_course.values())
+            course_summary = ", ".join(f"{ct}: {len(ts)}" for ct, ts in cached_by_course.items())
+            st.success(f"Fach: **{cached_subject}** — {total} Themen ({course_summary})")
+            if st.button("🔄 Neu extrahieren (Cache überschreiben)"):
+                # Delete existing lehrplan rows for this file so re-extraction saves fresh
+                supabase.table("topics").delete() \
+                    .eq("source", "lehrplan").eq("source_file", uploaded_lehrplan.name).execute()
+                st.session_state["extracted_by_course"] = {}
+                st.rerun()
+        elif st.button("Themen extrahieren", type="primary"):
+            try:
+                with st.spinner("OCR läuft..."):
+                    pdf_bytes = uploaded_lehrplan.read()
+                with st.spinner("Mistral erkennt Fach, Kurstyp und extrahiert Themen..."):
+                    detected_subject, by_course = extract_topics_with_mistral(pdf_bytes, uploaded_lehrplan.name)
+                total = sum(len(v) for v in by_course.values())
+                st.session_state["extracted_by_course"] = by_course
+                st.session_state["extracted_subject"]   = detected_subject
+                st.session_state["extracted_filename"]  = uploaded_lehrplan.name
+                course_summary = ", ".join(f"{ct}: {len(ts)}" for ct, ts in by_course.items())
+                st.success(f"Fach erkannt: **{detected_subject}** — {total} Themen ({course_summary})")
+            except Exception as e:
+                st.error(f"Fehler: {e}")
+                raise
 
     if st.session_state.get("extracted_by_course"):
+        by_course_now = st.session_state["extracted_by_course"]
+
+        # ── Quality metrics ────────────────────────────────────────────────────
+        excel_set = get_excel_topics_set()
+        total_extracted = sum(len(v) for v in by_course_now.values())
+        matched_excel = {t for tlist in by_course_now.values() for t in tlist
+                         if t.lower().strip() in excel_set}
+        col_a, col_b, col_c = st.columns(3)
+        col_a.metric("Extrahierte Themen", total_extracted)
+        col_b.metric("Philipps Excel-Themen", len(excel_set))
+        col_c.metric("Übereinstimmungen", f"{len(matched_excel)} / {len(excel_set)}")
+        if matched_excel:
+            with st.expander(f"✓ {len(matched_excel)} gefundene Übereinstimmungen anzeigen"):
+                for t in sorted(matched_excel):
+                    st.write(f"- {t}")
+
         st.subheader("Themen auswählen")
-        st.caption("Alle Themen, die du bestätigst, werden in den Dropdown übernommen.")
+        st.caption("Alle Themen, die du bestätigst, werden in den Dropdown übernommen. "
+                   "✓ = auch in Philipps Excel.")
         selected_new = []  # list of (course_type, topic)
-        for ct, topics_list in st.session_state["extracted_by_course"].items():
+        for ct, topics_list in by_course_now.items():
             st.markdown(f"**{ct}** — {len(topics_list)} Themen")
             for t in topics_list:
-                if st.checkbox(t, value=True, key=f"new_topic_{ct}_{t}"):
+                label = f"✓ {t}" if t.lower().strip() in excel_set else t
+                if st.checkbox(label, value=True, key=f"new_topic_{ct}_{t}"):
                     selected_new.append((ct, t))
 
         if st.button("✅ Ausgewählte Themen speichern", disabled=not selected_new):

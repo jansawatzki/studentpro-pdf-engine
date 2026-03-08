@@ -82,6 +82,8 @@ Source of truth for implementation order. Update status after every completed ta
 - [x] Topics-Liste als aufklappbare Fach-Sektionen (st.expander)
 - [x] `in_lehrplan` Spalte in `topics` — markiert Excel-Themen die auch im Kernlehrplan vorkommen (22 Treffer)
 - [x] Grüne Hervorhebung (✓) für Kernlehrplan-Treffer — rote (★) bleiben unverändert
+- [x] Lehrplan-Cache: 💾 Banner wenn PDF bereits extrahiert, 🔄 Neu extrahieren Button
+- [x] Qualitätsmetriken nach Extraktion: Übereinstimmungen Mistral vs. Excel anzeigen
 
 ---
 
