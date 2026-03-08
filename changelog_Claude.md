@@ -158,6 +158,23 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] Lehrplan-Tab: fixes + expandable subjects + auto-detect Fach
+
+### Fixed
+- Pinned topics overwritten by lehrplan upsert: upsert now checks pinned status before writing — pinned=true is never overwritten
+- Re-pinned Philipps 3 Excel-Themen in DB (waren durch Lehrplan-upsert auf false gesetzt worden)
+- Red highlighting now uses `<div>` instead of `<span>` for correct Streamlit HTML rendering
+
+### Changed
+- Subject dropdown removed — Mistral now auto-detects the subject from the PDF content
+- Topics list replaced with expandable sections per subject (st.expander), showing topic count and pinned count in header
+- Detected subject shown as confirmation after extraction
+
+### Files affected
+- `app_Claude.py`, Supabase DB (topics re-pinned)
+
+---
+
 ## [2026-03-08] Lehrplan-Tab: farbige Hervorhebung + PDF-Quellliste
 
 ### Added

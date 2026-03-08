@@ -72,6 +72,9 @@ Source of truth for implementation order. Update status after every completed ta
 - [x] Pinned Themen (Philipps Auswahl) rot hinterlegt im Lehrplan-Tab
 - [x] PDF-Quellliste im Lehrplan-Tab (analog zur Bücherliste)
 - [x] `source_file` Spalte in `topics` — trackt welches PDF jedes Thema geliefert hat
+- [x] Fix: upsert überschreibt nicht mehr pinned=true (Philipps Themen bleiben markiert)
+- [x] Subject-Dropdown entfernt — Mistral erkennt Fach automatisch aus PDF-Inhalt
+- [x] Topics-Liste als aufklappbare Fach-Sektionen (st.expander)
 
 ---
 

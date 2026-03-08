@@ -53,8 +53,8 @@ def load_topics_from_db():
     return [(r["subject"], r["topic"], r["pinned"]) for r in rows.data]
 
 
-def extract_topics_with_mistral(pdf_bytes: bytes, filename: str, subject: str) -> list[str]:
-    """OCR a Lehrplan PDF and extract topic list via Mistral Large."""
+def extract_topics_with_mistral(pdf_bytes: bytes, filename: str) -> tuple[str, list[str]]:
+    """OCR a Lehrplan PDF, auto-detect subject, extract topics. Returns (subject, topics)."""
     mfile = mistral.files.upload(
         file={"file_name": filename, "content": pdf_bytes}, purpose="ocr"
     )
@@ -74,18 +74,22 @@ def extract_topics_with_mistral(pdf_bytes: bytes, filename: str, subject: str) -
                 "role": "system",
                 "content": (
                     "Du bist Experte für NRW-Lehrpläne (Sekundarstufe II). "
-                    "Extrahiere aus dem folgenden Lehrplan-Text alle konkreten inhaltlichen Schwerpunkte "
-                    "und Unterrichtsthemen — also die Themen, die Lehrer tatsächlich im Unterricht behandeln. "
-                    "Gib NUR die Themen zurück, eines pro Zeile, ohne Nummerierung, ohne Erklärungen, ohne Überschriften. "
-                    "Keine allgemeinen Kompetenzformulierungen, nur konkrete Inhaltsthemen."
+                    "Deine Antwort besteht aus zwei Teilen, getrennt durch '---':\n"
+                    "Teil 1: Das Schulfach des Lehrplans in einem Wort (z.B. Deutsch, Mathematik, Biologie).\n"
+                    "Teil 2: Alle konkreten inhaltlichen Schwerpunkte und Unterrichtsthemen — "
+                    "eines pro Zeile, ohne Nummerierung, ohne Erklärungen, ohne Überschriften. "
+                    "Nur konkrete Inhaltsthemen, keine allgemeinen Kompetenzformulierungen."
                 ),
             },
-            {"role": "user", "content": f"Fach: {subject}\n\nLehrplan-Text:\n{full_text[:40000]}"},
+            {"role": "user", "content": f"Lehrplan-Text:\n{full_text[:40000]}"},
         ],
     )
     raw = resp.choices[0].message.content.strip()
-    topics = [line.strip("•–- ").strip() for line in raw.splitlines() if line.strip()]
-    return topics
+    parts = raw.split("---", 1)
+    subject = parts[0].strip() if len(parts) > 1 else "Unbekannt"
+    topic_lines = parts[1] if len(parts) > 1 else raw
+    topics = [line.strip("•–- ").strip() for line in topic_lines.splitlines() if line.strip()]
+    return subject, topics
 
 
 DEFAULT_SYSTEM_PROMPT = """\
@@ -230,22 +234,18 @@ with tab1:
 with tab_lehrplan:
     st.header("Lehrplan hochladen & Themen extrahieren")
 
-    col_upload, col_subject = st.columns([3, 1])
-    with col_upload:
-        uploaded_lehrplan = st.file_uploader("Lehrplan-PDF auswählen", type="pdf", key="lehrplan_uploader")
-    with col_subject:
-        lehrplan_subject = st.selectbox("Fach", ["Deutsch", "Mathematik", "Biologie", "Sozialwissenschaften"])
+    uploaded_lehrplan = st.file_uploader("Lehrplan-PDF auswählen", type="pdf", key="lehrplan_uploader")
 
     if uploaded_lehrplan and st.button("Themen extrahieren", type="primary"):
         try:
             with st.spinner("OCR läuft..."):
                 pdf_bytes = uploaded_lehrplan.read()
-            with st.spinner("Mistral analysiert den Lehrplan und extrahiert Themen..."):
-                extracted = extract_topics_with_mistral(pdf_bytes, uploaded_lehrplan.name, lehrplan_subject)
+            with st.spinner("Mistral erkennt Fach und extrahiert Themen..."):
+                detected_subject, extracted = extract_topics_with_mistral(pdf_bytes, uploaded_lehrplan.name)
             st.session_state["extracted_topics"]   = extracted
-            st.session_state["extracted_subject"]  = lehrplan_subject
+            st.session_state["extracted_subject"]  = detected_subject
             st.session_state["extracted_filename"] = uploaded_lehrplan.name
-            st.success(f"{len(extracted)} Themen gefunden.")
+            st.success(f"Fach erkannt: **{detected_subject}** — {len(extracted)} Themen gefunden.")
         except Exception as e:
             st.error(f"Fehler: {e}")
             raise
@@ -261,12 +261,22 @@ with tab_lehrplan:
         if st.button("✅ Ausgewählte Themen speichern", disabled=not selected_new):
             subj  = st.session_state["extracted_subject"]
             fname = st.session_state.get("extracted_filename", "")
+            # Load already-pinned topics to avoid overwriting pinned=true
+            pinned_set = {
+                r["topic"] for r in
+                supabase.table("topics").select("topic").eq("pinned", True).execute().data
+            }
             for t in selected_new:
-                supabase.table("topics").upsert(
-                    {"topic": t, "subject": subj, "pinned": False,
-                     "source": "lehrplan", "source_file": fname},
-                    on_conflict="topic,subject",
-                ).execute()
+                if t in pinned_set:
+                    # Preserve pinned status — only update source file info
+                    supabase.table("topics").update({"source_file": fname}) \
+                        .eq("topic", t).eq("subject", subj).execute()
+                else:
+                    supabase.table("topics").upsert(
+                        {"topic": t, "subject": subj, "pinned": False,
+                         "source": "lehrplan", "source_file": fname},
+                        on_conflict="topic,subject",
+                    ).execute()
             st.success(f"{len(selected_new)} Themen gespeichert — ab sofort im Dropdown verfügbar.")
             st.session_state["extracted_topics"] = []
 
@@ -290,22 +300,28 @@ with tab_lehrplan:
 
     # ── Gespeicherte Themen ────────────────────────────────────────────────────
     st.subheader("Gespeicherte Themen")
-    all_topics = supabase.table("topics").select("subject, topic, pinned, source") \
-        .order("pinned", desc=True).order("subject").order("topic").execute().data
+    all_topics = supabase.table("topics").select("subject, topic, pinned") \
+        .order("pinned", desc=True).order("topic").execute().data
     if all_topics:
-        current_subject = None
+        # Group by subject
+        by_subject = {}
         for r in all_topics:
-            if r["subject"] != current_subject:
-                current_subject = r["subject"]
-                st.markdown(f"**{current_subject}**")
-            if r["pinned"]:
-                st.markdown(
-                    f'<span style="background-color:#ff4b4b; color:white; '
-                    f'padding:2px 10px; border-radius:4px; font-size:0.9em;">★ {r["topic"]}</span>',
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.write(f"　{r['topic']}")
+            by_subject.setdefault(r["subject"], []).append(r)
+        for subj in sorted(by_subject.keys()):
+            rows = by_subject[subj]
+            n_pinned = sum(1 for r in rows if r["pinned"])
+            label = f"{subj} — {len(rows)} Themen ({n_pinned} von Philipp markiert)"
+            with st.expander(label):
+                for r in rows:
+                    if r["pinned"]:
+                        st.markdown(
+                            f'<div style="background-color:#ff4b4b; color:white; '
+                            f'padding:4px 12px; border-radius:4px; margin:2px 0; '
+                            f'font-size:0.9em;">★ {r["topic"]}</div>',
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.write(f"　{r['topic']}")
     else:
         st.write("Noch keine Themen gespeichert.")
 
