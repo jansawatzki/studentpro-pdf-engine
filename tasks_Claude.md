@@ -36,6 +36,31 @@ Source of truth for implementation order. Update status after every completed ta
 
 ---
 
+## Phase 0c — Deployment + UX Polish + Caching (done ✅)
+
+- [x] Replace free-text keyword input with topic dropdown (yellow-highlighted cells from `themen_Claude.xlsx`)
+- [x] Deploy to Streamlit Cloud (auto-deploy from GitHub on every push)
+- [x] Set up `st.secrets` for cloud credentials with local `.env` fallback
+- [x] Add ingestion cache: skip OCR if filename already in `documents` table
+- [x] Add summary cache: `summary_cache` Supabase table — repeat queries cost €0
+- [x] Add "🔄 Neu generieren" button to bypass cache manually
+- [x] Add Tab 3 "Projektübersicht" for Rachid: tech stack, test results, open tasks, cost breakdown
+- [x] Move all `_Claude.md` docs into `Mistral_Claude/` folder and commit to GitHub
+
+---
+
+## Phase 0d — Subject-Based Search Scoping (done ✅)
+
+- [x] Add `subject` column to `documents` table (e.g. `Deutsch`, `Mathematik`)
+- [x] Update `match_documents` RPC: accept `subject_filter` — scopes search to relevant books only
+- [x] Update `ingest_Claude.py`: require `subject` as 2nd CLI argument, store subject on each row
+- [x] Update `app_Claude.py`: map Excel sheet → subject, pass `subject_filter` to every search
+- [x] Backfill `subject = 'Deutsch'` on all existing Klett pages
+- [x] Add resume logic to `ingest_Claude.py`: skip already-indexed batches on interrupted runs
+- [x] Start indexing `Paul D Oberstufe Gesamtband_2024.pdf` (541MB, 315 pages) with `subject = 'Deutsch'`
+
+---
+
 ## Phase 1 — Schema Upgrade & Real Pipeline
 
 - [ ] Replace simple `documents` table with full schema:
