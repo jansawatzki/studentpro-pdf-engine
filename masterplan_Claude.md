@@ -1,6 +1,6 @@
 # Masterplan — student PRO PDF Retrieval Engine
 
-**Version:** 1.0 | **Created:** 2026-03-04 | **Owner:** Jan
+**Version:** 1.2 | **Created:** 2026-03-04 | **Last updated:** 2026-03-08 | **Owner:** Jan
 
 ---
 
@@ -110,14 +110,19 @@ Stack:
 
 ## 8. Delivery Phases
 
-| Phase | Goal | Exit Criterion |
+| Phase | Goal | Status |
 |---|---|---|
-| **0 — Foundation** | Stack running, basic upload + search | One PDF indexed, one query returns results |
-| **1 — Pipeline** | Full OCR → embed → retrieve → summarize | End-to-end working for one topic |
-| **2 — Quality** | Hybrid search, query expansion, re-ranking | ≥ 8/10 precision on 5 Deutsch topics |
-| **3 — Operator UI** | Topics dropdown, rating screen, export | Philipp can run full workflow solo |
-| **4 — Acceptance** | Rachid review, Philipp sign-off | Contractual acceptance criterion met |
-| **5 — Scale** | Biologie + Sozialwissenschaften | All 103 topics processable |
+| **0 — Foundation** | Stack running, basic upload + search | ✅ Done |
+| **0b — First real test** | Large PDF indexed, 3 queries pass at 88% | ✅ Done |
+| **0c — Deployment + Caching** | Streamlit Cloud, summary cache, ingestion cache | ✅ Done |
+| **0d — Operator UI** | Subject scoping, book selector, editable prompts, Lehrplan tab, topic DB, EF/GK/LK, keyword matching | ✅ Done |
+| **1 — Pipeline** | Proper chunking, hybrid search, query expansion | ⬜ Next |
+| **2 — Quality** | ≥ 8/10 precision on 5 Deutsch topics | ⬜ Pending acceptance test |
+| **3 — Export + Rating** | Binary rating UI, JSON/CSV export for Philipp's admin panel | ⬜ Planned |
+| **4 — Acceptance** | Rachid review, Philipp sign-off | ⬜ Awaiting |
+| **5 — Scale** | Biologie + Sozialwissenschaften, Mathe books | ⬜ Planned |
+
+**Current status (2026-03-08):** Phase 0d complete. System is fully operational for Deutsch with 2 books (424 pages), 93 Excel topics + Lehrplan topics in DB. Ready for acceptance test on Deutsch once Philipp reviews.
 
 ---
 

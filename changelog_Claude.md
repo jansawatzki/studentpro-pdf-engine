@@ -266,6 +266,17 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] Projektübersicht + Masterplan aktualisiert
+
+### Changed
+- Tab 3 „Projektübersicht": vollständig auf Stand 08.03.2026 gebracht — alle 5 Tabs dokumentiert, DB-Stand-Tabelle, beide System-Prompts, Farbmarkierungen, Buchbestand, Themenübersicht
+- `masterplan_Claude.md`: Version 1.2 — Phasentabelle mit Status ✅/⬜ aktualisiert, Phase 0b–0d als erledigt markiert, aktuellen Stand 2026-03-08 ergänzt
+
+### Files affected
+- `app_Claude.py` (Tab 3), `masterplan_Claude.md`
+
+---
+
 ## [2026-03-08] Keyword-Matching + Subject-Normalisierung + UI-Fixes
 
 ### Added

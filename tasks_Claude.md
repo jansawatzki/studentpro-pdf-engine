@@ -93,6 +93,8 @@ Source of truth for implementation order. Update status after every completed ta
 - [x] System-Prompt im Lehrplan-Tab umbenannt + unterhalb Datei-Upload verschoben
 - [x] Jan/GitHub Caption aus Projektübersicht entfernt
 - [x] Speichern markiert jetzt in_lehrplan=True auf gematchten Excel-Themen automatisch
+- [x] Tab 3 „Projektübersicht" auf Stand 08.03.2026 aktualisiert
+- [x] masterplan_Claude.md: Phasen-Status aktualisiert (0b–0d ✅)
 
 ---
 

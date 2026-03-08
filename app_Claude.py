@@ -677,70 +677,78 @@ Das System extrahiert automatisch relevante Inhalte aus großen Schulbuch-PDFs u
 
 | Komponente | Technologie | Zweck |
 |---|---|---|
-| **OCR / PDF-Extraktion** | Mistral OCR (`mistral-ocr-latest`) | Text aus Schulbuch-PDFs extrahieren |
+| **OCR / PDF-Extraktion** | Mistral OCR (`mistral-ocr-latest`) | Text aus Schulbuch- und Lehrplan-PDFs extrahieren |
 | **Embeddings** | Mistral Embed (`mistral-embed`, 1024-dim) | Seiten semantisch einbetten |
-| **Vektordatenbank** | Supabase pgvector | Vektoren speichern & ähnlichkeitsbasiert suchen |
-| **LLM Zusammenfassung** | Mistral Large (`mistral-large-latest`) | Deutsche Zusammenfassungen mit Seitenverweisen |
-| **Frontend** | Streamlit | Bedienoberfläche für Philipp |
-| **Hosting** | Streamlit Cloud | Öffentlich erreichbar, automatisches Deployment via GitHub |
-| **Versionskontrolle** | GitHub (`jansawatzki/studentpro-pdf-engine`) | Automatisches Re-Deployment bei jedem Push |
+| **Vektordatenbank** | Supabase pgvector | Vektoren + Metadaten speichern & suchen |
+| **LLM Zusammenfassung & Extraktion** | Mistral Large (`mistral-large-latest`) | Zusammenfassungen + Lehrplan-Themen-Extraktion |
+| **Frontend** | Streamlit | Bedienoberfläche |
+| **Hosting** | Streamlit Cloud | Öffentlich erreichbar, Auto-Deployment via GitHub |
 
 ---
 
-## Was funktioniert heute (05.03.2026)?
+## Was funktioniert heute (Stand: 08.03.2026)
 
-**✅ PDF-Ingestion**
-- PDFs bis 200 MB werden automatisch in 25-Seiten-Batches aufgeteilt (Mistral-Limit: 50 MB)
-- OCR → Chunking → Embedding → Speicherung in Supabase — vollautomatisch
-- Bereits getestet: *Klett „Deutsch kompetent EF"* (169 MB, 109 Seiten, 5 Batches)
+**✅ Bücher indexieren** (Tab 1)
+- Große PDFs automatisch in 25-Seiten-Batches aufgeteilt (Mistral-Limit: 50 MB)
+- OCR → Embedding → Supabase — vollautomatisch, mit Fach-Tagging
+- Cache: bereits indexierte Bücher werden übersprungen
+- Indexiert: *Klett „Deutsch kompetent EF"* (109 S.) + *Paul D Oberstufe Gesamtband* (315 S.)
 
-**✅ Semantische Suche**
-- Themen-Dropdown aus der Excel-Liste (gelb markierte Themen, NRW-Lehrplan)
-- Vektorbasierte Ähnlichkeitssuche über alle indexierten Bücher
-- Top-10 relevante Seiten werden zurückgegeben
+**✅ Lehrplan verarbeiten** (Tab 2)
+- Lehrplan-PDF hochladen → Mistral erkennt Fach + EF/GK/LK automatisch
+- Themen zur Überprüfung mit Checkboxen — vor dem Speichern prüfbar
+- Qualitätsmetrik: wie viele von Philipps Excel-Themen hat Mistral gefunden? (Keyword-Matching)
+- Cache: bereits verarbeitete PDFs werden aus DB geladen, kein zweiter Mistral-Aufruf
+- Verarbeitet: Kernlehrplan Deutsch NRW + Kernlehrplan Mathematik NRW
 
-**✅ Zusammenfassung**
-- Mistral Large erstellt strukturierte deutsche Zusammenfassung mit Seitenverweisen
-- Prompt auf NRW-Lehrerkontext optimiert
+**✅ Thema abfragen** (Tab 3)
+- Dropdown mit allen gespeicherten Themen (Format: `[Fach · EF/GK/LK]`)
+- Pinned-Themen (★ rot, Philipps Excel-Auswahl) erscheinen oben
+- Fachbasierte Suche: Deutsch-Themen durchsuchen nur Deutsch-Bücher
+- Buchauswahl per Checkbox möglich (alle vorgewählt)
+- Zusammenfassung mit Seitenverweisen und aufklappbaren Quellseiten
+- Cache: Folgeabfragen kosten €0
 
-**✅ Credit-Caching**
-- Ingestion: erkennt bereits indexierte PDFs → kein doppelter OCR-Lauf
-- Suche: Ergebnisse werden in `summary_cache` gespeichert → jede Folgeabfrage kostet €0
-- „Neu generieren"-Button für manuelle Aktualisierung
+**✅ Zwei editierbare System-Prompts**
+- Extraktions-Prompt (Lehrplan-Tab) — steuert wie Mistral Themen aus dem Lehrplan liest
+- Zusammenfassungs-Prompt (Abfrage-Tab) — steuert den Lehrer-Kontext für Zusammenfassungen
+- Beide in Supabase gespeichert, bleiben bei App-Neustarts erhalten
+
+**✅ Themenübersicht mit Farbmarkierung**
+- ★ Rot — von Philipp in der Excel markiert
+- ✓ Grün — im Kernlehrplan gefunden UND in Philipps Excel
+- Ohne Markierung — nur im Kernlehrplan
 
 ---
 
-## Erste Testergebnisse (semantische Suche, 3 Testthemen)
+## Datenbank-Stand
+
+| Tabelle | Inhalt |
+|---|---|
+| `documents` | 424 Seiten (109 Klett + 315 Paul D), alle Fach: Deutsch |
+| `topics` | 93 Excel-Themen (Deutsch + Mathe, EF/GK/LK) + Lehrplan-Themen Deutsch |
+| `summary_cache` | Gecachte Zusammenfassungen (wächst mit jeder Abfrage) |
+| `settings` | 2 System-Prompts (Extraktion + Zusammenfassung) |
+
+---
+
+## Erste Testergebnisse
 
 | Thema | Top-Treffer | Ähnlichkeit |
 |---|---|---|
 | Sprachvarietäten und ihre gesellschaftliche Bedeutung | Seite 100 — Lexikon Sprache | 88% |
 | Lyrische Texte: Inhalt, Aufbau, sprachliche Gestaltung | Seite 94 — Gattungslexikon Lyrik | 88% |
-| Kommunikationsrollen und -funktionen: Kommunikationsmodelle | Seite 6 — Kommunikationsmodelle | 88% |
+| Kommunikationsrollen: Kommunikationsmodelle | Seite 6 — Kommunikationsmodelle | 88% |
 
-Alle drei Testthemen liefern direkte Treffer auf Position 1. Formaler Abnahmetest (Top-10, ≥ 8/10 binäre Bewertung) steht noch aus.
+Alle drei Testthemen liefern direkte Treffer auf Position 1. Formaler Abnahmetest (Top-10, ≥ 8/10) ausstehend.
 
 ---
 
 ## Vereinbartes Abnahmekriterium
 
-> Top-10 Retrieval-Ergebnisse für ein definiertes Lehrplan-Thema,
-> **≥ 8 von 10 Treffern thematisch relevant** (binäre Bewertung: 1/0),
+> Top-10 Retrieval-Ergebnisse für ein Lehrplan-Thema,
+> **≥ 8 von 10 Treffern relevant** (binäre Bewertung),
 > stabil über mindestens 5 verschiedene Themen.
-
----
-
-## Offene Punkte / Nächste Schritte
-
-| Priorität | Aufgabe |
-|---|---|
-| 🔴 Hoch | Formaler Abnahmetest mit Philipp (binäre Bewertung Top-10) |
-| 🔴 Hoch | Weitere Schulbücher von Philipp erhalten und indexieren |
-| 🟡 Mittel | Hybrid Search: semantisch + BM25 (Keyword) kombinieren |
-| 🟡 Mittel | Query Expansion: Thema → 3–5 Synonyme vor der Suche |
-| 🟡 Mittel | Re-Ranking der Top-20 → beste 10 auswählen |
-| 🟢 Later | Export: JSON/CSV für Philipp's Admin-Panel |
-| 🟢 Later | Alle 103 Themen aus Excel laden (aktuell: 3 Testthemen) |
 
 ---
 
@@ -750,7 +758,7 @@ Alle drei Testthemen liefern direkte Treffer auf Position 1. Formaler Abnahmetes
 |---|---|---|
 | OCR (gesamtes Korpus ~9.000 Seiten) | ~€18 | — |
 | Embeddings (Vollkorpus) | ~€2 | — |
-| Zusammenfassungen (103 Themen × 1 Run, dann gecacht) | ~€10 | ~€0 |
+| Zusammenfassungen (103 Themen, dann gecacht) | ~€10 | ~€0 |
 | **Gesamt** | **~€30** | **~€0–5** |
 """)
 
