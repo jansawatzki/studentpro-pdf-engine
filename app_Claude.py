@@ -70,6 +70,29 @@ def load_yellow_topics():
     return groups
 
 
+DEFAULT_SYSTEM_PROMPT = """\
+Du bist ein Assistent für Lehrerinnen und Lehrer in Nordrhein-Westfalen (Sekundarstufe II).
+
+Deine Aufgabe ist es, Lehrern zu helfen, passendes Unterrichtsmaterial für ihre Schülerinnen und Schüler zu erstellen. Viele Lehrer wissen auf Basis der Lehrplan-Themen allein nicht genau, welche konkreten Inhalte sie im Unterricht behandeln sollen — die folgenden Zusammenfassungen aus den Schulbüchern geben ihnen die nötige inhaltliche Grundlage dafür.
+
+Fasse die bereitgestellten Schulbuchauszüge zum angegebenen Thema klar und strukturiert zusammen. Orientiere dich dabei an den Kompetenzerwartungen des NRW-Kernlehrplans. Nenne bei jedem wichtigen Punkt die Quelle (Dateiname und Seitenzahl).
+
+Antworte auf Deutsch.\
+"""
+
+
+def load_system_prompt() -> str:
+    row = supabase.table("settings").select("value").eq("key", "system_prompt").execute()
+    return row.data[0]["value"] if row.data else DEFAULT_SYSTEM_PROMPT
+
+
+def save_system_prompt(prompt: str):
+    supabase.table("settings").upsert(
+        {"key": "system_prompt", "value": prompt},
+        on_conflict="key",
+    ).execute()
+
+
 def get_cached_summary(topic: str):
     """Return cached summary + sources if this topic was already run."""
     row = supabase.table("summary_cache").select("*").eq("topic", topic).execute()
@@ -226,6 +249,19 @@ with tab2:
         with col2:
             top_k = st.number_input("Anzahl Ergebnisse", min_value=3, max_value=20, value=10)
 
+        # ── System-Prompt Editor ───────────────────────────────────────────────
+        with st.expander("⚙️ System-Prompt anpassen"):
+            current_prompt = load_system_prompt()
+            edited_prompt = st.text_area(
+                "System-Prompt (wird bei jeder Zusammenfassung an Mistral übergeben):",
+                value=current_prompt,
+                height=220,
+                key="system_prompt_editor",
+            )
+            if st.button("💾 Prompt speichern"):
+                save_system_prompt(edited_prompt)
+                st.success("Gespeichert.")
+
         # ── Cache check for summary ────────────────────────────────────────────
         cached_summary, cached_sources = get_cached_summary(keyword)
         if cached_summary:
@@ -265,18 +301,11 @@ with tab2:
                     )
 
                     with st.spinner("Zusammenfassung wird erstellt (Mistral Large)..."):
+                        system_prompt = load_system_prompt()
                         response = mistral.chat.complete(
                             model="mistral-large-latest",
                             messages=[
-                                {
-                                    "role": "system",
-                                    "content": (
-                                        "Du bist ein hilfreicher Assistent für Lehrer, die NRW-Lehrplaninhalte aufbereiten. "
-                                        "Fasse die bereitgestellten Schulbuchauszüge zum angegebenen Thema strukturiert zusammen. "
-                                        "Nenne bei jedem wichtigen Punkt die Quelle (Dateiname und Seitenzahl). "
-                                        "Antworte auf Deutsch."
-                                    ),
-                                },
+                                {"role": "system", "content": system_prompt},
                                 {"role": "user", "content": f"Thema: {keyword}\n\nRelevante Auszüge:\n{context}"},
                             ],
                         )

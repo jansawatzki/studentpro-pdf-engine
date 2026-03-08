@@ -96,6 +96,22 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] Editierbarer System-Prompt mit Supabase-Persistenz
+
+### Added
+- `settings` Tabelle in Supabase (`key TEXT PRIMARY KEY, value TEXT`) — speichert globale Einstellungen
+- `load_system_prompt()` / `save_system_prompt()` Funktionen — lesen/schreiben den Prompt aus der DB
+- `DEFAULT_SYSTEM_PROMPT` — verbesserter Standard-Prompt: erklärt Mistral den Lehrer-Kontext (NRW Sek II, Unterrichtsmaterial erstellen, Schulbuch-Grundlage)
+- Expander "⚙️ System-Prompt anpassen" in Tab 2: editierbares Textfeld + "💾 Prompt speichern"-Button
+
+### Changed
+- Mistral Large Aufruf lädt den System-Prompt jetzt live aus Supabase statt hardcoded
+
+### Files affected
+- `app_Claude.py`, Supabase DB (neue `settings` Tabelle)
+
+---
+
 ## [2026-03-08] UI-Texte bereinigt
 
 ### Changed

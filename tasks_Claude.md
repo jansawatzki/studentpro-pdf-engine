@@ -62,6 +62,8 @@ Source of truth for implementation order. Update status after every completed ta
 - [x] `filename_filter` parameter added to `match_documents` RPC — search scoped to selected books only
 - [x] Tab 4 "Wie funktioniert es?" — Systemerklärung auf Deutsch für Philipp & Rachid
 - [x] Tab 3 "Projektübersicht" generalisiert — "für Rachid" entfernt
+- [x] Editierbarer System-Prompt in Tab 2 — gespeichert in Supabase `settings` Tabelle
+- [x] Verbesserter Default-Prompt — Lehrer-Kontext, NRW Sek II, Unterrichtsmaterial
 
 ---
 
