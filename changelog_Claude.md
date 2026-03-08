@@ -52,6 +52,50 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-05] Topic Dropdown + Streamlit Cloud Deployment + Credit Caching
+
+### Added
+- Topic dropdown in Tab 2: reads yellow-highlighted cells (color `FF92D050`, column 3) from `themen_Claude.xlsx` using openpyxl — replaces free-text input
+- `themen_Claude.xlsx` — copy of Philipp's Excel added to repo so app can read topics on Streamlit Cloud
+- `.streamlit/config.toml` — headless mode + light theme for cloud deployment
+- Streamlit Cloud deployment: auto-deploys from `github.com/jansawatzki/studentpro-pdf-engine` on every push (~60s redeploy)
+- **Ingestion cache**: `is_already_indexed()` checks if filename exists in `documents` before running OCR — skips re-ingestion entirely
+- **Summary cache**: `summary_cache` Supabase table stores LLM output per topic; `get_cached_summary()` / `save_cached_summary()` functions — every repeat query costs €0
+- "🔄 Neu generieren" button allows manual cache bypass
+- "💾 Aus Cache geladen" info banner shown when cache hit
+- Tab 3 "Projektübersicht" — German project summary for Rachid: tech stack table, what works today, test results, acceptance criteria, open tasks, cost breakdown
+
+### Changed
+- Secrets loading: reads from `st.secrets` first (Streamlit Cloud), falls back to `config_Claude.env` locally
+- `requirements.txt` added (separate from `requirements_Claude.txt`) for Streamlit Cloud auto-install
+
+### Fixed
+- GitHub push auth: embedded PAT in remote URL to fix "Device not configured" error
+- Streamlit Cloud TOML secrets invalid format: regenerated from terminal to ensure straight quotes
+- Streamlit Cloud `supabase_url is required`: changed from `os.environ` injection to direct `st.secrets` read
+
+---
+
+## [2026-03-08] Subject-Based Search Scoping + Paul D Ingestion
+
+### Added
+- `subject` column on `documents` table — stores curriculum area (e.g. `Deutsch`, `Mathematik`) for each indexed page
+- Updated `match_documents` RPC to accept `subject_filter TEXT DEFAULT NULL` — queries are now scoped to the relevant subject area only (Deutsch topics never search Mathe books and vice versa)
+- Resume logic in `ingest_Claude.py`: checks `max(page_number)` already in DB before starting — skips completed batches on interrupted runs (saves OCR credits)
+- `SHEET_TO_SUBJECT` mapping in `app_Claude.py`: maps Excel sheet names (`Themenliste Deutsch SEK II` → `Deutsch`, `Themenliste Mathe SEK II` → `Mathematik`) to clean subject keys
+- Started indexing `Paul D Oberstufe Gesamtband_2024.pdf` — 541MB, 315 pages, 13 batches — tagged `subject = 'Deutsch'`
+
+### Changed
+- `ingest_Claude.py` now requires `subject` as 2nd CLI argument: `python3 ingest_Claude.py <pdf> <subject>`
+- `app_Claude.py` extracts `subject` from selected topic's sheet and passes it as `subject_filter` to `match_documents` RPC
+- Topic dropdown labels now show clean subject name (e.g. `[Deutsch]`) instead of raw sheet name
+- All existing Klett pages backfilled with `subject = 'Deutsch'` via SQL update
+
+### Files affected
+- `app_Claude.py`, `ingest_Claude.py`, Supabase DB (schema + RPC updated)
+
+---
+
 **Format for new entries:**
 - **Added** for new features
 - **Changed** for changes in existing functionality
