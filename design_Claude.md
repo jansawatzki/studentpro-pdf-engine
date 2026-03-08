@@ -1,6 +1,21 @@
 # Design Guide — student PRO PDF Retrieval Engine
 
-**Version:** 1.0 | **Created:** 2026-03-04 | **Owner:** Jan
+**Version:** 1.1 | **Created:** 2026-03-04 | **Last updated:** 2026-03-08 | **Owner:** Jan
+
+---
+
+## 0. Current State (as of 2026-03-08) — LIVE
+
+The live app has **5 tabs**, not 4 as originally planned. Sections 1–10 below describe the design patterns still in use; the tab structure in Section 3 is superseded by this:
+
+```
+📚 Bücher hochladen | 📄 Lehrplan hochladen | 🔍 Thema abfragen | 📋 Projektübersicht | ❓ Wie funktioniert es?
+```
+
+Colour signals added beyond Streamlit defaults:
+- `#ff4b4b` red badge — topics pinned by Philipp (★)
+- `#21a354` green badge — topics found in both Excel and Kernlehrplan (✓)
+- `st.info` blue — cache-hit banners ("💾 Aus Cache geladen")
 
 ---
 

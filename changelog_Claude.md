@@ -266,6 +266,16 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] design_Claude.md aktualisiert
+
+### Changed
+- `design_Claude.md`: Version 1.1 — "Current State" Abschnitt ergänzt: 5-Tab-Struktur, Farbsignale (#ff4b4b rot, #21a354 grün, Cache-Banner)
+
+### Files affected
+- `design_Claude.md`
+
+---
+
 ## [2026-03-08] nextstepsandquality_Claude.md erstellt
 
 ### Added
