@@ -76,9 +76,28 @@ With smaller chunks:
 - Mistral writes a tighter, more accurate summary
 - Fewer irrelevant results in the top-10
 
-This is the single change with the biggest impact on quality. It requires re-indexing all books (the OCR is already done and saved — we just re-split and re-embed, no extra OCR cost).
+---
 
-**How hard:** Medium. 3–4 hours, plus re-indexing time.
+**❓ How does re-indexing actually work? Does it cost money? Can we do it now?**
+
+Good question — and the answer is better than you'd expect.
+
+**Step 1 — OCR (reading the PDF):** Already done. The text of all 424 pages is sitting in our database right now. We never need to do this again.
+
+**Step 2 — Chunking (splitting the text):** Just a Python function that cuts long text into 500-word pieces. Runs locally, takes seconds, costs €0.
+
+**Step 3 — Embedding (turning text into numbers):** This is the only step that costs Mistral credits. But embedding is the *cheapest* Mistral API — €0.10 per 1 million words. Our 424 pages would produce roughly 800 chunks × 500 words each = ~400,000 words total. That's **€0.04**. Basically free.
+
+**Step 4 — Store in database:** A small schema change (add a `chunk_index` column, update the unique key) and then write the new rows. 30 minutes of work.
+
+**Can we do it right now?**
+Yes. Technically nothing stops us. The reason it's listed at #4 and not #1 is purely that export and the acceptance test are *contractual* blockers — they need to happen first to close the project. But if Philipp is very interested in quality, we could flip #4 and #1 — chunking is fast, cheap, and the impact is immediate.
+
+**Total cost of re-indexing all current books:** ~€0.04. **Time to implement:** ~2–3 hours dev work.
+
+---
+
+**How hard:** Medium (2–3 hours dev). Re-indexing cost: ~€0.04.
 
 ---
 
@@ -94,7 +113,13 @@ Keyword search is the opposite — it finds exact words instantly but misses syn
 
 By combining both (70% semantic score + 30% keyword score), you get the best of both worlds. This is especially important for Mathe, where technical terms like "Ableitungsregel" or "Integralrechnung" need to be found exactly.
 
-**How hard:** Medium. Requires adding a BM25 text index to the database.
+**❓ Does this cost extra credits?**
+No. BM25 is a standard database feature (PostgreSQL supports it natively). It runs entirely inside Supabase — no Mistral calls needed at search time.
+
+**❓ Why not do it right now?**
+It requires adding a text search index to the database and updating the `match_documents` function. About 2 hours of dev work. No blockers otherwise.
+
+**How hard:** Medium (2 hours dev). Extra cost: €0.
 
 ---
 
