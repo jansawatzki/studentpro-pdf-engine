@@ -111,12 +111,23 @@ def ingest(pdf_path: str, subject: str):
     print(f"Batches: {-(-total // BATCH_SIZE)} × {BATCH_SIZE} pages")
     print(f"{'='*60}\n")
 
+    # Find the highest page already indexed for this file (resume support)
+    resume_row = supabase.table("documents").select("page_number") \
+        .eq("filename", filename).order("page_number", desc=True).limit(1).execute()
+    last_indexed = resume_row.data[0]["page_number"] if resume_row.data else 0
+    if last_indexed:
+        print(f"Resume : pages 1–{last_indexed} already indexed, skipping those batches\n")
+
     batches = split_pdf(pdf_path, BATCH_SIZE)
     total_stored = 0
 
     for idx, (pdf_bytes, start_page) in enumerate(batches, 1):
         end_page = min(start_page + BATCH_SIZE - 1, total)
         size_mb  = len(pdf_bytes) / 1_000_000
+
+        if end_page <= last_indexed:
+            print(f"[Batch {idx}/{len(batches)}] Pages {start_page}–{end_page}  → already indexed, skipping")
+            continue
 
         print(f"[Batch {idx}/{len(batches)}] Pages {start_page}–{end_page}  ({size_mb:.1f} MB)")
         print(f"  → Uploading to Mistral OCR...", end=" ", flush=True)
