@@ -266,6 +266,22 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] Grüne Hervorhebung für Kernlehrplan-Themen
+
+### Added
+- `in_lehrplan` boolean column in `topics` table — marks Excel topics that also appear in extracted Kernlehrplan content (22 matches found: Deutsch EF/GK/LK)
+- Green highlighting in topics overview: topics with `in_lehrplan=true` (and not pinned/red) shown with green background (#21a354) and ✓ symbol
+- Expander header shows count of Kernlehrplan matches alongside Philipp's pinned count
+
+### Changed
+- Topics overview query now fetches `in_lehrplan` column
+- Three-state display: ★ red (pinned by Philipp) · ✓ green (in Kernlehrplan) · plain (neither)
+
+### Files affected
+- `app_Claude.py`, Supabase DB (`topics` table: new `in_lehrplan` column)
+
+---
+
 **Format for new entries:**
 - **Added** for new features
 - **Changed** for changes in existing functionality

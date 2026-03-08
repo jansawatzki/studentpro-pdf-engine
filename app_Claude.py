@@ -329,7 +329,7 @@ with tab_lehrplan:
 
     # ── Gespeicherte Themen ────────────────────────────────────────────────────
     st.subheader("Gespeicherte Themen")
-    all_topics = supabase.table("topics").select("subject, course_type, topic, pinned") \
+    all_topics = supabase.table("topics").select("subject, course_type, topic, pinned, in_lehrplan") \
         .order("pinned", desc=True).order("subject").order("course_type").order("topic").execute().data
     if all_topics:
         # Group by subject → course_type
@@ -344,7 +344,8 @@ with tab_lehrplan:
             ct_dict = by_subject[subj]
             total   = sum(len(v) for v in ct_dict.values())
             n_pin   = sum(1 for v in ct_dict.values() for r in v if r["pinned"])
-            with st.expander(f"{subj} — {total} Themen ({n_pin} von Philipp markiert)"):
+            n_lp    = sum(1 for v in ct_dict.values() for r in v if r.get("in_lehrplan") and not r["pinned"])
+            with st.expander(f"{subj} — {total} Themen ({n_pin} von Philipp markiert, {n_lp} im Kernlehrplan)"):
                 for ct in CT_ORDER:
                     if ct not in ct_dict:
                         continue
@@ -355,6 +356,13 @@ with tab_lehrplan:
                                 f'<div style="background-color:#ff4b4b; color:white; '
                                 f'padding:4px 12px; border-radius:4px; margin:2px 0; '
                                 f'font-size:0.9em;">★ {r["topic"]}</div>',
+                                unsafe_allow_html=True,
+                            )
+                        elif r.get("in_lehrplan"):
+                            st.markdown(
+                                f'<div style="background-color:#21a354; color:white; '
+                                f'padding:4px 12px; border-radius:4px; margin:2px 0; '
+                                f'font-size:0.9em;">✓ {r["topic"]}</div>',
                                 unsafe_allow_html=True,
                             )
                         else:

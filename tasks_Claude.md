@@ -80,6 +80,8 @@ Source of truth for implementation order. Update status after every completed ta
 - [x] Fix: upsert überschreibt nicht mehr pinned=true (Philipps Themen bleiben markiert)
 - [x] Subject-Dropdown entfernt — Mistral erkennt Fach automatisch aus PDF-Inhalt
 - [x] Topics-Liste als aufklappbare Fach-Sektionen (st.expander)
+- [x] `in_lehrplan` Spalte in `topics` — markiert Excel-Themen die auch im Kernlehrplan vorkommen (22 Treffer)
+- [x] Grüne Hervorhebung (✓) für Kernlehrplan-Treffer — rote (★) bleiben unverändert
 
 ---
 
