@@ -1,6 +1,64 @@
 # Implementation Guide — student PRO PDF Retrieval Engine
 
-**Version:** 1.0 | **Created:** 2026-03-04 | **Owner:** Jan
+**Version:** 1.1 | **Created:** 2026-03-04 | **Last updated:** 2026-03-08 | **Owner:** Jan
+
+---
+
+## 0. Current State (as of 2026-03-08) — LIVE
+
+This section describes what is actually deployed. Sections 1–5 below describe the planned Phase 1+ architecture.
+
+### Live DB schema (Supabase)
+
+```sql
+-- Indexed book pages (one row per page)
+documents (id, filename, page_number, content, embedding vector(1024), subject, created_at)
+UNIQUE (filename, page_number)
+
+-- Lehrplan topics + Excel topics
+topics (id, topic, subject, course_type, pinned bool, in_lehrplan bool,
+        source, source_file, created_at)
+UNIQUE (topic, subject, course_type)
+
+-- Per-topic summary cache
+summary_cache (topic, summary, sources jsonb, hits int, created_at)
+
+-- Global editable settings
+settings (key TEXT PRIMARY KEY, value TEXT)
+-- keys: 'system_prompt' (summary), 'extraction_prompt' (lehrplan extraction)
+```
+
+### Live RPC
+
+```sql
+match_documents(query_embedding vector, match_count int,
+                subject_filter text DEFAULT NULL,
+                filename_filter text[] DEFAULT NULL)
+-- Returns top-N pages by cosine similarity, scoped to subject + selected books
+```
+
+### Live UI — 5 tabs
+
+| Tab | Purpose |
+|---|---|
+| 📚 Bücher hochladen | Upload PDF → OCR → embed → store; ingestion cache |
+| 📄 Lehrplan hochladen | Upload Lehrplan PDF → OCR → Mistral extracts topics by EF/GK/LK; extraction cache; quality metrics vs. Excel |
+| 🔍 Thema abfragen | Dropdown (from DB) → vector search → Mistral Large summary; summary cache |
+| 📋 Projektübersicht | Status, test results, tech stack, cost breakdown |
+| ❓ Wie funktioniert es? | System explanation in German |
+
+### Live features
+- Ingestion cache: skip OCR if filename already in `documents`
+- Summary cache: `summary_cache` table, bypass with "🔄 Neu generieren"
+- Lehrplan extraction cache: load from DB if `source_file` already extracted
+- Two editable system prompts stored in `settings`: extraction + summary
+- Subject-scoped search: Deutsch topics only search Deutsch books
+- Book selector: checkboxes per book, grouped by subject
+- Topics colour coding: ★ red = pinned by Philipp · ✓ green = in Kernlehrplan + Excel · plain = Lehrplan only
+- Quality metrics after Lehrplan extraction: Übereinstimmungen vs. Philipps Excel (subject-filtered)
+
+### Live external scripts
+- `ingest_Claude.py` — CLI ingestion for large PDFs (25-page batches, resume logic)
 
 ---
 

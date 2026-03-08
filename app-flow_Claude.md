@@ -1,6 +1,54 @@
 # App Flow — student PRO PDF Retrieval Engine
 
-**Version:** 1.0 | **Created:** 2026-03-04 | **Owner:** Jan
+**Version:** 1.1 | **Created:** 2026-03-04 | **Last updated:** 2026-03-08 | **Owner:** Jan
+
+---
+
+## 0. Current Flows (as of 2026-03-08) — LIVE
+
+### Tab structure (5 tabs)
+
+```
+📚 Bücher hochladen | 📄 Lehrplan hochladen | 🔍 Thema abfragen | 📋 Projektübersicht | ❓ Wie funktioniert es?
+```
+
+### Journey A — Buch indexieren
+```
+Tab „Bücher hochladen"
+→ PDF hochladen
+→ Cache-Check: bereits indexiert? → Hinweis + Skip
+→ „Buch verarbeiten" → OCR → Embed → Supabase upsert
+→ Bücherliste unten aktualisiert
+```
+
+### Journey B — Lehrplan verarbeiten
+```
+Tab „Lehrplan hochladen"
+→ ⚙️ Extraktions-Prompt optional anpassen + speichern
+→ PDF hochladen
+→ Cache-Check: source_file bereits in topics?
+  → JA: 💾 Aus Cache geladen — Themen direkt aus DB
+  → NEIN: „Themen extrahieren" → OCR → Mistral Large → parse EF/GK/LK
+→ Qualitätsmetriken: Extrahierte Themen / Philipps Excel / Übereinstimmungen (fachgefiltert)
+→ Matching-Themen in Checkbox-Liste mit ✓ markiert
+→ „Ausgewählte Themen speichern" → upsert in topics (pinned-Schutz)
+→ Lehrplan-PDF-Liste + Themenübersicht aktualisiert
+```
+
+### Journey C — Thema abfragen (täglich)
+```
+Tab „Thema abfragen"
+→ Bücher per Checkbox auswählen (nach Fach gruppiert, alle vorgewählt)
+→ Thema auswählen (Dropdown: pinned ★ oben, Format [Fach · EF/GK/LK])
+→ Cache-Check: topic bereits in summary_cache?
+  → JA: 💾 Ergebnis direkt anzeigen
+  → NEIN: „Relevante Inhalte abrufen"
+      → Embed topic → match_documents RPC (subject + filename filter)
+      → Mistral Large summary (Prompt aus Supabase settings)
+      → Ergebnis cachen + anzeigen
+→ ⚙️ Zusammenfassungs-Prompt optional anpassen + speichern
+→ 🔄 Neu generieren → Cache-Bypass
+```
 
 ---
 

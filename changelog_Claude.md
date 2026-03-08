@@ -266,6 +266,25 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] Editierbarer Extraktions-Prompt + Mathe-Matching-Fix + Tab-Update
+
+### Added
+- `DEFAULT_EXTRACTION_PROMPT` — Extraktions-System-Prompt als editierbare Konstante (war hardcoded)
+- `load_extraction_prompt()` / `save_extraction_prompt()` — lesen/schreiben aus `settings` Tabelle (key: `extraction_prompt`)
+- Expander „⚙️ Extraktions-Prompt anpassen" im Lehrplan-Tab mit Speichern-Button — analog zum Zusammenfassungs-Prompt in Tab 2
+
+### Fixed
+- Mathe-Qualitätsmetrik: `get_excel_topics_set()` akzeptiert jetzt `subject` Parameter — Matching filtert auf das erkannte Fach statt alle 93 Themen (Deutsch + Mathe gemischt zu vergleichen)
+
+### Changed
+- `extract_topics_with_mistral()` lädt jetzt Prompt live aus Supabase statt hardcoded
+- Tab „Wie funktioniert es?" vollständig überarbeitet: 3 Phasen, beide System-Prompts erklärt, Farbmarkierungen dokumentiert, Stellschrauben aktualisiert
+
+### Files affected
+- `app_Claude.py`
+
+---
+
 ## [2026-03-08] Lehrplan-Cache + Qualitätsmetriken
 
 ### Added

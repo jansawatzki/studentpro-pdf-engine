@@ -84,6 +84,9 @@ Source of truth for implementation order. Update status after every completed ta
 - [x] Grüne Hervorhebung (✓) für Kernlehrplan-Treffer — rote (★) bleiben unverändert
 - [x] Lehrplan-Cache: 💾 Banner wenn PDF bereits extrahiert, 🔄 Neu extrahieren Button
 - [x] Qualitätsmetriken nach Extraktion: Übereinstimmungen Mistral vs. Excel anzeigen
+- [x] Editierbarer Extraktions-Prompt (Supabase settings, expander in Lehrplan-Tab)
+- [x] Mathe-Matching-Fix: get_excel_topics_set() nach Fach gefiltert
+- [x] Tab „Wie funktioniert es?" überarbeitet (3 Phasen, beide Prompts, Markierungen)
 
 ---
 

@@ -53,6 +53,42 @@ def load_topics_from_db():
     return [(r["subject"], r["course_type"] or "", r["topic"], r["pinned"]) for r in rows.data]
 
 
+DEFAULT_EXTRACTION_PROMPT = """\
+Du bist Experte für NRW-Lehrpläne (Sekundarstufe II).
+Analysiere den Lehrplan und gib deine Antwort exakt in diesem Format zurück:
+
+FACH: [Fachname, z.B. Deutsch]
+
+=== EF ===
+- Thema 1
+- Thema 2
+
+=== GK ===
+- Thema 1
+
+=== LK ===
+- Thema 1
+
+Regeln:
+- EF = Einführungsphase, GK = Qualifikationsphase Grundkurs, LK = Qualifikationsphase Leistungskurs
+- Nur konkrete inhaltliche Schwerpunkte, keine allgemeinen Kompetenzformulierungen
+- Wenn ein Kurstyp im Dokument nicht vorkommt, lass ihn weg
+- Keine Nummerierung, keine Erklärungen außer den Themen selbst\
+"""
+
+
+def load_extraction_prompt() -> str:
+    row = supabase.table("settings").select("value").eq("key", "extraction_prompt").execute()
+    return row.data[0]["value"] if row.data else DEFAULT_EXTRACTION_PROMPT
+
+
+def save_extraction_prompt(prompt: str):
+    supabase.table("settings").upsert(
+        {"key": "extraction_prompt", "value": prompt},
+        on_conflict="key",
+    ).execute()
+
+
 def extract_topics_with_mistral(pdf_bytes: bytes, filename: str) -> tuple[str, dict]:
     """OCR a Lehrplan PDF, auto-detect subject + course types, extract topics.
     Returns (subject, {"EF": [...], "GK": [...], "LK": [...]})."""
@@ -68,29 +104,11 @@ def extract_topics_with_mistral(pdf_bytes: bytes, filename: str) -> tuple[str, d
 
     full_text = "\n\n".join(p.markdown for p in ocr.pages if p.markdown)
 
+    extraction_prompt = load_extraction_prompt()
     resp = mistral.chat.complete(
         model="mistral-large-latest",
         messages=[
-            {
-                "role": "system",
-                "content": (
-                    "Du bist Experte für NRW-Lehrpläne (Sekundarstufe II).\n"
-                    "Analysiere den Lehrplan und gib deine Antwort exakt in diesem Format zurück:\n\n"
-                    "FACH: [Fachname, z.B. Deutsch]\n\n"
-                    "=== EF ===\n"
-                    "- Thema 1\n"
-                    "- Thema 2\n\n"
-                    "=== GK ===\n"
-                    "- Thema 1\n\n"
-                    "=== LK ===\n"
-                    "- Thema 1\n\n"
-                    "Regeln:\n"
-                    "- EF = Einführungsphase, GK = Qualifikationsphase Grundkurs, LK = Qualifikationsphase Leistungskurs\n"
-                    "- Nur konkrete inhaltliche Schwerpunkte, keine allgemeinen Kompetenzformulierungen\n"
-                    "- Wenn ein Kurstyp im Dokument nicht vorkommt, lass ihn weg\n"
-                    "- Keine Nummerierung, keine Erklärungen außer den Themen selbst"
-                ),
-            },
+            {"role": "system", "content": extraction_prompt},
             {"role": "user", "content": f"Lehrplan-Text:\n{full_text[:40000]}"},
         ],
     )
@@ -178,10 +196,12 @@ def load_lehrplan_from_cache(filename: str):
     return subject, by_course
 
 
-def get_excel_topics_set() -> set[str]:
-    """Return lowercase set of all topics from Philipp's Excel."""
-    rows = supabase.table("topics").select("topic").eq("source", "excel").execute().data
-    return {r["topic"].lower().strip() for r in rows}
+def get_excel_topics_set(subject: str = None) -> set[str]:
+    """Return lowercase set of Excel topics, optionally filtered to a single subject."""
+    q = supabase.table("topics").select("topic").eq("source", "excel")
+    if subject:
+        q = q.eq("subject", subject)
+    return {r["topic"].lower().strip() for r in q.execute().data}
 
 
 # ── Page config ────────────────────────────────────────────────────────────────
@@ -279,6 +299,20 @@ with tab1:
 with tab_lehrplan:
     st.header("Lehrplan hochladen & Themen extrahieren")
 
+    # ── Extraction system prompt editor ───────────────────────────────────────
+    with st.expander("⚙️ Extraktions-Prompt anpassen"):
+        current_extraction_prompt = load_extraction_prompt()
+        edited_extraction_prompt = st.text_area(
+            "System-Prompt für Themen-Extraktion (wird bei jedem Lehrplan-Upload an Mistral übergeben):",
+            value=current_extraction_prompt,
+            height=250,
+            key="extraction_prompt_editor",
+        )
+        if st.button("💾 Prompt speichern", key="save_extraction_prompt"):
+            save_extraction_prompt(edited_extraction_prompt)
+            st.success("Gespeichert.")
+
+    st.divider()
     uploaded_lehrplan = st.file_uploader("Lehrplan-PDF auswählen", type="pdf", key="lehrplan_uploader")
 
     if uploaded_lehrplan:
@@ -318,7 +352,7 @@ with tab_lehrplan:
         by_course_now = st.session_state["extracted_by_course"]
 
         # ── Quality metrics ────────────────────────────────────────────────────
-        excel_set = get_excel_topics_set()
+        excel_set = get_excel_topics_set(subject=st.session_state.get("extracted_subject"))
         total_extracted = sum(len(v) for v in by_course_now.values())
         matched_excel = {t for tlist in by_course_now.values() for t in tlist
                          if t.lower().strip() in excel_set}
@@ -658,54 +692,70 @@ with tab4:
     st.header("Wie funktioniert das System?")
 
     st.markdown("""
-## Die zwei Phasen
+## Die drei Phasen
 
-### 1. Einmalig: Bücher verarbeiten (Ingestion)
-
-Wenn ein PDF hochgeladen wird, passiert folgendes:
+### 1. Einmalig: Bücher verarbeiten (Tab „Bücher hochladen")
 
 ```
-PDF → OCR (Mistral liest jede Seite als Text)
-    → jede Seite wird in ~1024 Zahlen umgewandelt ("Embedding")
-    → Zahlen + Text werden in der Datenbank gespeichert
+PDF hochladen
+    → OCR (Mistral liest jede Seite als Text)
+    → jede Seite wird in ~1024 Zahlen umgewandelt („Embedding")
+    → Zahlen + Text + Fach werden in der Datenbank gespeichert
 ```
 
 Jede Seite bekommt einen **Zahlenvektor** — eine Art mathematischer Fingerabdruck
-des Inhalts. Seiten über ähnliche Themen haben ähnliche Vektoren. Das passiert
-nur einmal pro Buch und kostet danach nichts mehr.
+des Inhalts. Das passiert nur einmal pro Buch und kostet danach nichts mehr.
+Bereits indexierte Bücher werden automatisch übersprungen (Cache).
 
 ---
 
-### 2. Bei jeder Suche
+### 2. Einmalig: Lehrplan verarbeiten (Tab „Lehrplan hochladen")
 
 ```
-Thema ("Lyrische Texte")
-    → wird ebenfalls in Zahlen umgewandelt
+Lehrplan-PDF hochladen
+    → OCR (Mistral liest den gesamten Lehrplan)
+    → Mistral Large erkennt automatisch: Fach + EF / GK / LK
+    → Extrahierte Themen werden zur Überprüfung angezeigt
+    → Qualitätscheck: wie viele von Philipps Excel-Themen wurden gefunden?
+    → Bestätigte Themen werden in der DB gespeichert
+```
+
+Bereits verarbeitete Lehrplan-PDFs werden automatisch aus dem Cache geladen — kein
+erneuter Mistral-Aufruf nötig. Der Extraktions-Prompt ist editierbar und wird in
+Supabase gespeichert.
+
+**Markierungen in der Themenübersicht:**
+- ★ Rot — von Philipp in der Excel markiert (höchste Priorität)
+- ✓ Grün — im Kernlehrplan gefunden UND in Philipps Excel
+- Ohne Markierung — nur im Kernlehrplan, nicht in der Excel
+
+---
+
+### 3. Bei jeder Suche (Tab „Thema abfragen")
+
+```
+Thema auswählen
+    → wird in Zahlen umgewandelt (Embedding)
     → Vergleich mit allen gespeicherten Seiten-Vektoren (Cosine Similarity)
     → Top-10 ähnlichsten Seiten werden ausgewählt
-    → Mistral Large schreibt eine Zusammenfassung aus diesen 10 Seiten
+    → Mistral Large schreibt Zusammenfassung aus diesen 10 Seiten
+    → Ergebnis wird gecacht → Folgeabfragen kosten €0
 ```
 
-Je kleiner der Abstand zwischen dem Thema-Vektor und einem Seiten-Vektor,
-desto relevanter die Seite. Aktuell sehen wir Ähnlichkeitswerte von ~88% auf
-dem ersten Platz — das ist ein gutes Ergebnis.
+Die Suche ist automatisch auf das richtige Fach eingeschränkt — Deutsch-Themen
+durchsuchen nur Deutsch-Bücher, Mathe-Themen nur Mathe-Bücher.
+Einzelne Bücher können per Checkbox de-/aktiviert werden.
 
 ---
 
-## Was übergeben wir Mistral aktuell?
+## Zwei editierbare System-Prompts
 
-Aktuell bekommt Mistral bei der Suche **nur das Thema** — exakt so wie
-Philipp es in der Excel markiert hat.
+| Prompt | Wo | Zweck |
+|---|---|---|
+| **Extraktions-Prompt** | Tab „Lehrplan hochladen" → ⚙️ | Steuert wie Mistral Themen aus dem Lehrplan-PDF extrahiert |
+| **Zusammenfassungs-Prompt** | Tab „Thema abfragen" → ⚙️ | Steuert wie Mistral die Schulbuch-Auszüge zusammenfasst |
 
-**Für die Zusammenfassung:**
-- Den Thema-Text
-- Die 10 gefundenen Schulbuch-Seiten als rohen Text
-
-**Was Mistral nicht weiß:**
-- In welchem Fach das Thema liegt
-- Für welche Klassenstufe / Kursart (EF, Q1, Q2)
-- Was der NRW-Kernlehrplan konkret erwartet
-- In welchem Inhaltsfeld das Thema liegt
+Beide Prompts werden in Supabase gespeichert und überleben App-Neustarts.
 
 ---
 
@@ -713,9 +763,8 @@ Philipp es in der Excel markiert hat.
 
 | Maßnahme | Aufwand | Effekt |
 |---|---|---|
-| **Anzahl Ergebnisse erhöhen** (top_k: 10 → 15) | sofort | Mehr Kontext für Mistral → vollständigere Zusammenfassungen |
-| **Themen präziser formulieren** | sofort | Semantische Suche reagiert auf Sprache des Schulbuchs |
-| **Fach + Kursart in den Prompt** | klein | Zusammenfassungen gezielter auf NRW-Lehrplan |
+| **Extraktions-Prompt anpassen** | sofort | Mistral findet mehr / präzisere Themen aus dem Lehrplan |
+| **Anzahl Ergebnisse erhöhen** (top_k: 10 → 15) | sofort | Mehr Kontext → vollständigere Zusammenfassungen |
 | **Mehr Bücher indexieren** | mittel | Mehr Quellen = mehr Abdeckung |
 | **Hybrid Search** (Semantik + Keyword) | mittel | Findet auch Seiten mit exakten Fachbegriffen |
 | **Query Expansion** | mittel | Thema → 3–5 Synonyme → breitere Suche |
@@ -730,8 +779,5 @@ Das vereinbarte Abnahmekriterium:
 > Ein Thema aus der Liste auswählen → Top-10 Ergebnisse anschauen →
 > für jede Seite **1** (relevant) oder **0** (nicht relevant) vergeben →
 > Ziel: **≥ 8 von 10**, stabil über mindestens 5 verschiedene Themen.
-
-Das ist der schnellste Weg zu sehen, wo das System gut ist — und wo wir
-nachbessern müssen.
 """)
 
