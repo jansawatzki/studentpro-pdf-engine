@@ -64,6 +64,11 @@ Source of truth for implementation order. Update status after every completed ta
 - [x] Tab 3 "Projektübersicht" generalisiert — "für Rachid" entfernt
 - [x] Editierbarer System-Prompt in Tab 2 — gespeichert in Supabase `settings` Tabelle
 - [x] Verbesserter Default-Prompt — Lehrer-Kontext, NRW Sek II, Unterrichtsmaterial
+- [x] `topics` Tabelle in Supabase — ersetzt Excel als Themenquelle
+- [x] 3 Excel-Themen als pinned migriert
+- [x] Neuer Tab "Lehrplan hochladen" — OCR + Mistral Extraktion + Review + Speichern
+- [x] Dropdown in Tab 2 aus DB, pinned Themen mit ★ oben
+- [x] Kernlehrplan Deutsch + Mathematik verarbeitet
 
 ---
 

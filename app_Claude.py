@@ -46,28 +46,46 @@ def load_indexed_books():
     return books
 
 
-@st.cache_data
-def load_yellow_topics():
-    wb = openpyxl.load_workbook(EXCEL_PATH)
-    groups = {}
-    for sheet in wb.sheetnames:
-        ws = wb[sheet]
-        topics = []
-        for row in ws.iter_rows():
-            for cell in row:
-                if (
-                    cell.column == 3
-                    and cell.fill
-                    and cell.fill.fgColor
-                    and cell.fill.fgColor.type == "rgb"
-                    and cell.fill.fgColor.rgb == YELLOW
-                    and cell.value
-                ):
-                    topics.append(str(cell.value).lstrip("• ").strip())
-        if topics:
-            subject = SHEET_TO_SUBJECT.get(sheet, sheet)
-            groups[subject] = topics
-    return groups
+def load_topics_from_db():
+    """Return list of (subject, topic, pinned) — pinned topics first."""
+    rows = supabase.table("topics").select("subject, topic, pinned") \
+        .order("pinned", desc=True).order("topic").execute()
+    return [(r["subject"], r["topic"], r["pinned"]) for r in rows.data]
+
+
+def extract_topics_with_mistral(pdf_bytes: bytes, filename: str, subject: str) -> list[str]:
+    """OCR a Lehrplan PDF and extract topic list via Mistral Large."""
+    mfile = mistral.files.upload(
+        file={"file_name": filename, "content": pdf_bytes}, purpose="ocr"
+    )
+    signed = mistral.files.get_signed_url(file_id=mfile.id)
+    ocr = mistral.ocr.process(
+        model="mistral-ocr-latest",
+        document={"type": "document_url", "document_url": signed.url},
+    )
+    mistral.files.delete(file_id=mfile.id)
+
+    full_text = "\n\n".join(p.markdown for p in ocr.pages if p.markdown)
+
+    resp = mistral.chat.complete(
+        model="mistral-large-latest",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Du bist Experte für NRW-Lehrpläne (Sekundarstufe II). "
+                    "Extrahiere aus dem folgenden Lehrplan-Text alle konkreten inhaltlichen Schwerpunkte "
+                    "und Unterrichtsthemen — also die Themen, die Lehrer tatsächlich im Unterricht behandeln. "
+                    "Gib NUR die Themen zurück, eines pro Zeile, ohne Nummerierung, ohne Erklärungen, ohne Überschriften. "
+                    "Keine allgemeinen Kompetenzformulierungen, nur konkrete Inhaltsthemen."
+                ),
+            },
+            {"role": "user", "content": f"Fach: {subject}\n\nLehrplan-Text:\n{full_text[:40000]}"},
+        ],
+    )
+    raw = resp.choices[0].message.content.strip()
+    topics = [line.strip("•–- ").strip() for line in raw.splitlines() if line.strip()]
+    return topics
 
 
 DEFAULT_SYSTEM_PROMPT = """\
@@ -121,7 +139,9 @@ def is_already_indexed(filename: str) -> bool:
 st.set_page_config(page_title="student PRO — PDF Engine", layout="wide")
 st.title("student PRO — PDF Knowledge Engine")
 
-tab1, tab2, tab3, tab4 = st.tabs(["📚 Upload PDF", "🔍 Thema abfragen", "📋 Projektübersicht", "❓ Wie funktioniert es?"])
+tab1, tab_lehrplan, tab2, tab3, tab4 = st.tabs([
+    "📚 Bücher hochladen", "📄 Lehrplan hochladen", "🔍 Thema abfragen", "📋 Projektübersicht", "❓ Wie funktioniert es?"
+])
 
 # ── Tab 1: Upload ──────────────────────────────────────────────────────────────
 with tab1:
@@ -206,6 +226,63 @@ with tab1:
     except Exception as e:
         st.warning(f"Bücherliste konnte nicht geladen werden: {e}")
 
+# ── Tab Lehrplan: Upload & extract topics ──────────────────────────────────────
+with tab_lehrplan:
+    st.header("Lehrplan hochladen & Themen extrahieren")
+
+    col_upload, col_subject = st.columns([3, 1])
+    with col_upload:
+        uploaded_lehrplan = st.file_uploader("Lehrplan-PDF auswählen", type="pdf", key="lehrplan_uploader")
+    with col_subject:
+        lehrplan_subject = st.selectbox("Fach", ["Deutsch", "Mathematik", "Biologie", "Sozialwissenschaften"])
+
+    if uploaded_lehrplan and st.button("Themen extrahieren", type="primary"):
+        try:
+            with st.spinner("OCR läuft..."):
+                pdf_bytes = uploaded_lehrplan.read()
+            with st.spinner("Mistral analysiert den Lehrplan und extrahiert Themen..."):
+                extracted = extract_topics_with_mistral(pdf_bytes, uploaded_lehrplan.name, lehrplan_subject)
+            st.session_state["extracted_topics"]  = extracted
+            st.session_state["extracted_subject"] = lehrplan_subject
+            st.success(f"{len(extracted)} Themen gefunden.")
+        except Exception as e:
+            st.error(f"Fehler: {e}")
+            raise
+
+    if st.session_state.get("extracted_topics"):
+        st.subheader("Themen auswählen")
+        st.caption("Alle Themen, die du bestätigst, werden in den Dropdown übernommen.")
+        selected_new = []
+        for t in st.session_state["extracted_topics"]:
+            if st.checkbox(t, value=True, key=f"new_topic_{t}"):
+                selected_new.append(t)
+
+        if st.button("✅ Ausgewählte Themen speichern", disabled=not selected_new):
+            subj = st.session_state["extracted_subject"]
+            for t in selected_new:
+                supabase.table("topics").upsert(
+                    {"topic": t, "subject": subj, "pinned": False, "source": "lehrplan"},
+                    on_conflict="topic,subject",
+                ).execute()
+            st.success(f"{len(selected_new)} Themen gespeichert — ab sofort im Dropdown verfügbar.")
+            st.session_state["extracted_topics"] = []
+
+    st.divider()
+    st.subheader("Gespeicherte Themen")
+    all_topics = supabase.table("topics").select("subject, topic, pinned, source") \
+        .order("pinned", desc=True).order("subject").order("topic").execute().data
+    if all_topics:
+        current_subject = None
+        for r in all_topics:
+            if r["subject"] != current_subject:
+                current_subject = r["subject"]
+                st.markdown(f"**{current_subject}**")
+            prefix = "★ " if r["pinned"] else "　"
+            st.write(f"{prefix}{r['topic']}  _{r['source']}_")
+    else:
+        st.write("Noch keine Themen gespeichert.")
+
+
 # ── Tab 2: Search ──────────────────────────────────────────────────────────────
 with tab2:
     st.header("Thema abfragen")
@@ -227,25 +304,24 @@ with tab2:
             st.warning("Bitte mindestens ein Buch auswählen.")
     st.divider()
 
-    topic_groups = load_yellow_topics()
-    options = []
-    for sheet, topics in topic_groups.items():
-        for t in topics:
-            options.append((sheet, t))
+    options = load_topics_from_db()  # list of (subject, topic, pinned)
 
     if not options:
-        st.warning("Keine markierten Themen in der Excel-Datei gefunden.")
+        st.warning("Noch keine Themen geladen. Bitte zuerst einen Lehrplan hochladen.")
     else:
         col1, col2 = st.columns([3, 1])
         with col1:
-            labels = [f"{t}  [{subject}]" for subject, t in options]
+            labels = [
+                f"{'★ ' if pinned else ''}{topic}  [{subject}]"
+                for subject, topic, pinned in options
+            ]
             selected_idx = st.selectbox(
-                "Thema auswählen (gelb markierte Themen aus der Excel-Liste):",
+                "Thema auswählen:",
                 range(len(labels)),
                 format_func=lambda i: labels[i],
             )
-            subject  = options[selected_idx][0]
-            keyword  = options[selected_idx][1]
+            subject = options[selected_idx][0]
+            keyword = options[selected_idx][1]
         with col2:
             top_k = st.number_input("Anzahl Ergebnisse", min_value=3, max_value=20, value=10)
 

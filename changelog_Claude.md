@@ -112,6 +112,28 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] Lehrplan-Tab + topics-Tabelle + DB-Dropdown
+
+### Added
+- `topics` Tabelle in Supabase: `topic, subject, pinned, source, created_at`
+- 3 Excel-Themen als `pinned=true, source='excel'` migriert
+- `load_topics_from_db()` — lädt Themen aus DB, pinned zuerst
+- `extract_topics_with_mistral()` — OCR + Mistral Large extrahiert Themenliste aus Lehrplan-PDF
+- Neuer Tab "📄 Lehrplan hochladen": PDF upload → Extraktion → Checkboxen zur Auswahl → Speichern
+- Übersicht aller gespeicherten Themen im Lehrplan-Tab
+- Kernlehrplan Deutsch + Mathematik (NRW) direkt verarbeitet
+
+### Changed
+- Tab-Leiste: 5 Tabs — Bücher hochladen, Lehrplan hochladen, Thema abfragen, Projektübersicht, Wie funktioniert es?
+- Tab 2 Dropdown lädt jetzt aus `topics` DB-Tabelle statt aus Excel
+- ★ Prefix für pinned Themen im Dropdown (Philipps markierte oben)
+- `load_yellow_topics()` entfernt — ersetzt durch `load_topics_from_db()`
+
+### Files affected
+- `app_Claude.py`, Supabase DB (`topics` Tabelle)
+
+---
+
 ## [2026-03-08] UI-Texte bereinigt
 
 ### Changed
