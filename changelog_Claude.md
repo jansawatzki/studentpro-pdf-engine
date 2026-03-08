@@ -96,6 +96,16 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] Enable YOLO Mode (bypass permissions permanently)
+
+### Added
+- `.claude/settings.json` — sets `defaultMode: bypassPermissions` so Claude Code never asks for tool-use confirmations in this project
+
+### Files affected
+- `Mistral_Claude/.claude/settings.json` (new)
+
+---
+
 **Format for new entries:**
 - **Added** for new features
 - **Changed** for changes in existing functionality
