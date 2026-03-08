@@ -76,6 +76,30 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-08] Project docs moved into Mistral_Claude/
+
+### Changed
+- All `_Claude.md` planning docs moved from `/docs/` and project root into `Mistral_Claude/` — colocated with the code
+- `/docs/` folder deleted
+- All 9 doc files committed to GitHub
+
+### Files affected
+- `masterplan_Claude.md`, `implementation_Claude.md`, `design_Claude.md`, `app-flow_Claude.md`, `tasks_Claude.md`, `changelog_Claude.md`, `rules_Claude.md`, `learnings_Claude.md`, `What_I_Need_To_Build_This_Claude.md`
+
+---
+
+## [2026-03-08] Paul D Oberstufe Gesamtband — full ingestion completed
+
+### Added
+- `Paul D Oberstufe Gesamtband_2024.pdf` fully indexed: 541MB, 315 pages, 13 batches, `subject = 'Deutsch'`
+- Resume logic used: 125 pages already indexed from interrupted first run, remaining 190 pages picked up automatically
+- All Paul D pages backfilled with `subject = 'Deutsch'` via SQL update
+
+### Files affected
+- Supabase `documents` table (315 new rows)
+
+---
+
 ## [2026-03-08] Subject-Based Search Scoping + Paul D Ingestion
 
 ### Added
