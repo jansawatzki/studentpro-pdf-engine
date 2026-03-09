@@ -74,18 +74,33 @@ def main():
 
     print(f"Found {len(rows)} pages across all books.\n")
 
+    # Find which pages already have chunks (chunk_index > 0 means that page is done)
+    done_pages_raw = supabase.table("documents").select("filename, page_number") \
+        .gt("chunk_index", 0).execute().data
+    done_pages = set((r["filename"], r["page_number"]) for r in done_pages_raw)
+    if done_pages:
+        print(f"Found {len(done_pages)} pages already chunked — will skip those.\n")
+
     filenames = sorted(set(r["filename"] for r in rows))
     total_chunks_all = 0
 
     for fname in filenames:
         pages = [r for r in rows if r["filename"] == fname]
+        pending = [p for p in pages if (fname, p["page_number"]) not in done_pages]
         print(f"\n{'='*60}")
         print(f"File   : {fname}")
-        print(f"Pages  : {len(pages)}")
+        print(f"Pages  : {len(pages)} total, {len(pages)-len(pending)} already done, {len(pending)} to process")
 
-        # Build all chunk rows for this file
+        if not pending:
+            existing = supabase.table("documents").select("id", count="exact") \
+                .eq("filename", fname).execute()
+            print(f"  → fully chunked ({existing.count} rows) — skipping")
+            total_chunks_all += existing.count
+            continue
+
+        # Build all chunk rows for pending pages
         all_new_rows = []
-        for page in pages:
+        for page in pending:
             text = (page["content"] or "").strip()
             if not text:
                 continue
@@ -103,12 +118,22 @@ def main():
         print(f"Chunks : {len(all_new_rows)} (~{avg_chunks:.1f} per page)")
         print(f"Estimated cost: ~€{len(all_new_rows) * 500 / 1_000_000 * 0.10:.4f}\n")
 
-        # Embed + upsert in batches
+        # Embed + upsert in batches (with retry on rate limit)
         t0 = time.time()
         for i in range(0, len(all_new_rows), EMBED_BATCH):
             batch = all_new_rows[i : i + EMBED_BATCH]
             texts = [r["content"] for r in batch]
-            emb_resp = mistral.embeddings.create(model="mistral-embed", inputs=texts)
+            for attempt in range(5):
+                try:
+                    emb_resp = mistral.embeddings.create(model="mistral-embed", inputs=texts)
+                    break
+                except Exception as e:
+                    if "429" in str(e) and attempt < 4:
+                        wait = 2 ** attempt * 5  # 5, 10, 20, 40s
+                        print(f"\n  Rate limit — waiting {wait}s...", end=" ", flush=True)
+                        time.sleep(wait)
+                    else:
+                        raise
             for j, item in enumerate(batch):
                 item["embedding"] = emb_resp.data[j].embedding
             supabase.table("documents").upsert(
@@ -117,6 +142,7 @@ def main():
             ).execute()
             done = min(i + EMBED_BATCH, len(all_new_rows))
             print(f"  → {done}/{len(all_new_rows)} chunks embedded & stored", end="\r")
+            time.sleep(0.3)  # gentle pacing to avoid rate limits
 
         elapsed = time.time() - t0
         print(f"  → ✓ {len(all_new_rows)} chunks stored for '{fname}'  ({elapsed:.0f}s)       ")

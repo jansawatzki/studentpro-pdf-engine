@@ -16,10 +16,10 @@ All notable changes to this project will be documented in this file.
 - `app_Claude.py` Tab 2: Quellseiten zeigen jetzt "Seite 47 (Abschnitt 2)" wenn `chunk_index > 0` — sowohl bei gecachten als auch frischen Ergebnissen
 - `docs/nextstepsandquality_Claude.md`: Implementation task list aktualisiert (Steps 2, 6, 7 ✅), Step 1 SQL um 4. Statement erweitert (RPC update für `chunk_index`)
 
-### Pending (user action required)
-- Step 1: 4 SQL-Statements in Supabase SQL Editor ausführen
-- Step 4: `python3 reindex_Claude.py` starten (nach Step 1)
-- Step 5: Verify row count + Test-Query im App
+### Executed
+- SQL Migration via Supabase Management API: `chunk_index` Spalte, neue unique constraint, `match_documents` RPC aktualisiert
+- `reindex_Claude.py` erfolgreich abgeschlossen: 424 Seiten → 2126 Chunks (Klett: 536, Paul D: 1590, ~5/Seite)
+- Retry-Logik (exponential backoff) + page-level Resume in `reindex_Claude.py` nachgerüstet
 
 ### Files affected
 - `reindex_Claude.py` (neu), `ingest_Claude.py`, `app_Claude.py`, `docs/nextstepsandquality_Claude.md`, `docs/changelog_Claude.md`, `docs/tasks_Claude.md`
