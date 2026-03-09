@@ -26,6 +26,31 @@ supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 YELLOW     = "FF92D050"
 EXCEL_PATH = os.path.join(os.path.dirname(__file__), "themen_Claude.xlsx")
 
+CHUNK_CHARS   = 1500    # target chunk size in characters (~500 words)
+OVERLAP_CHARS = 200     # overlap between adjacent chunks
+
+
+def chunk_text(text: str) -> list[str]:
+    """Split text into overlapping chunks, breaking at word boundaries."""
+    if len(text) <= CHUNK_CHARS:
+        return [text]
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + CHUNK_CHARS
+        if end < len(text):
+            break_at = text.rfind(' ', start + CHUNK_CHARS // 2, end)
+            if break_at == -1:
+                break_at = end
+            end = break_at
+        chunk = text[start:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        start = end - OVERLAP_CHARS
+        if start >= len(text):
+            break
+    return chunks if chunks else [text]
+
 # Maps Excel sheet names → subject key stored in DB
 SHEET_TO_SUBJECT = {
     "Themenliste Deutsch SEK II": "Deutsch",
@@ -306,6 +331,7 @@ with tab1:
 
                 progress = st.progress(0, text="Starte Einbettung...")
                 skipped = 0
+                total_chunks_stored = 0
                 for i, page in enumerate(pages):
                     text = page.markdown.strip() if page.markdown else ""
                     if not text:
@@ -313,20 +339,23 @@ with tab1:
                         progress.progress((i + 1) / len(pages), text=f"Seite {i+1}/{len(pages)} — leer, übersprungen")
                         continue
 
-                    emb = mistral.embeddings.create(model="mistral-embed", inputs=[text[:8000]])
-                    embedding = emb.data[0].embedding
+                    page_chunks = chunk_text(text[:8000])
+                    texts_to_embed = [c for c in page_chunks]
+                    emb_resp = mistral.embeddings.create(model="mistral-embed", inputs=texts_to_embed)
+                    for ci, chunk_content in enumerate(page_chunks):
+                        embedding = emb_resp.data[ci].embedding
+                        supabase.table("documents").upsert(
+                            {"filename": uploaded_file.name, "page_number": page.index + 1,
+                             "chunk_index": ci, "content": chunk_content, "embedding": embedding},
+                            on_conflict="filename,page_number,chunk_index",
+                        ).execute()
+                    total_chunks_stored += len(page_chunks)
 
-                    supabase.table("documents").upsert(
-                        {"filename": uploaded_file.name, "page_number": page.index + 1,
-                         "content": text, "embedding": embedding},
-                        on_conflict="filename,page_number",
-                    ).execute()
-
-                    progress.progress((i + 1) / len(pages), text=f"Seite {i+1}/{len(pages)} gespeichert")
+                    progress.progress((i + 1) / len(pages), text=f"Seite {i+1}/{len(pages)} ({len(page_chunks)} Abschnitte) gespeichert")
 
                 mistral.files.delete(file_id=mistral_file.id)
                 st.success(
-                    f"Fertig! {len(pages) - skipped} Seiten indexiert "
+                    f"Fertig! {len(pages) - skipped} Seiten → {total_chunks_stored} Abschnitte indexiert "
                     f"({skipped} leere Seiten übersprungen) — '{uploaded_file.name}'"
                 )
 
@@ -339,12 +368,18 @@ with tab1:
     try:
         rows = supabase.table("documents").select("filename, page_number").execute()
         if rows.data:
-            files = {}
+            pages_per_file: dict[str, set] = {}
+            chunks_per_file: dict[str, int] = {}
             for r in rows.data:
-                files.setdefault(r["filename"], 0)
-                files[r["filename"]] += 1
-            for fname, count in sorted(files.items()):
-                st.write(f"- **{fname}** — {count} Seiten indexiert")
+                pages_per_file.setdefault(r["filename"], set()).add(r["page_number"])
+                chunks_per_file[r["filename"]] = chunks_per_file.get(r["filename"], 0) + 1
+            for fname in sorted(pages_per_file.keys()):
+                n_pages  = len(pages_per_file[fname])
+                n_chunks = chunks_per_file[fname]
+                if n_chunks > n_pages:
+                    st.write(f"- **{fname}** — {n_pages} Seiten ({n_chunks} Abschnitte indexiert)")
+                else:
+                    st.write(f"- **{fname}** — {n_pages} Seiten indexiert")
         else:
             st.write("Noch keine Bücher indexiert.")
     except Exception as e:
@@ -596,7 +631,8 @@ with tab2:
                 st.divider()
                 st.subheader(f"Quellseiten ({len(cached_sources)} Treffer)")
                 for r in cached_sources:
-                    with st.expander(f"**{r['filename']}** — Seite {r['page_number']}  (Relevanz: {r['similarity']:.0%})"):
+                    chunk_label = f" (Abschnitt {r['chunk_index']+1})" if r.get('chunk_index', 0) > 0 else ""
+                    with st.expander(f"**{r['filename']}** — Seite {r['page_number']}{chunk_label}  (Relevanz: {r['similarity']:.0%})"):
                         st.write(r["content"][:800] + ("..." if len(r["content"]) > 800 else ""))
 
             if st.button("🔄 Neu generieren (Cache überschreiben)"):
@@ -650,8 +686,9 @@ with tab2:
                     st.divider()
                     st.subheader(f"Quellseiten ({len(chunks)} Treffer)")
                     for r in chunks:
+                        chunk_label = f" (Abschnitt {r.get('chunk_index', 0)+1})" if r.get('chunk_index', 0) > 0 else ""
                         with st.expander(
-                            f"**{r['filename']}** — Seite {r['page_number']}  "
+                            f"**{r['filename']}** — Seite {r['page_number']}{chunk_label}  "
                             f"(Relevanz: {r['similarity']:.0%})"
                         ):
                             st.write(r["content"][:800] + ("..." if len(r["content"]) > 800 else ""))

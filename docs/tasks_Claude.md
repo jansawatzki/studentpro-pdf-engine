@@ -96,6 +96,9 @@ Source of truth for implementation order. Update status after every completed ta
 - [x] Tab 3 „Projektübersicht" auf Stand 08.03.2026 aktualisiert
 - [x] masterplan_Claude.md: Phasen-Status aktualisiert (0b–0d ✅)
 - [x] nextstepsandquality_Claude.md: priorisierte Next Steps + Qualitäts-Guide erstellt
+- [x] Chunking-Implementierung Steps 2+3+6+7: `chunk_text()`, `ingest_Claude.py` Update, `reindex_Claude.py` erstellt, `app_Claude.py` Tab1+2 aktualisiert
+- [~] Chunking Step 1 (SQL): 4 SQL-Statements in Supabase SQL Editor ausführen — **deine Aktion**
+- [~] Chunking Step 4: `python3 reindex_Claude.py` — nach Step 1
 
 ---
 

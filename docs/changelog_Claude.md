@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-09] Chunking-Implementierung (Steps 2–6)
+
+### Added
+- `reindex_Claude.py` — einmaliges Re-Indexierungs-Skript: liest bestehende Seiten aus DB, splittet in Abschnitte (~1500 Zeichen, 200 Overlap), re-embeddet, upserted mit `chunk_index`
+- `chunk_text()` Funktion in `ingest_Claude.py` + `app_Claude.py` — teilt langen Text an Wortgrenzen in überlappende Abschnitte auf
+
+### Changed
+- `ingest_Claude.py`: `embed_and_store()` nutzt jetzt `chunk_text()`, speichert mit `chunk_index`, `on_conflict="filename,page_number,chunk_index"`
+- `app_Claude.py` Tab 1: Upload-Loop chunked jetzt pro Seite, zeigt "X Abschnitte" im Fortschrittsbalken; Bücherliste zeigt "109 Seiten (847 Abschnitte)"
+- `app_Claude.py` Tab 2: Quellseiten zeigen jetzt "Seite 47 (Abschnitt 2)" wenn `chunk_index > 0` — sowohl bei gecachten als auch frischen Ergebnissen
+- `docs/nextstepsandquality_Claude.md`: Implementation task list aktualisiert (Steps 2, 6, 7 ✅), Step 1 SQL um 4. Statement erweitert (RPC update für `chunk_index`)
+
+### Pending (user action required)
+- Step 1: 4 SQL-Statements in Supabase SQL Editor ausführen
+- Step 4: `python3 reindex_Claude.py` starten (nach Step 1)
+- Step 5: Verify row count + Test-Query im App
+
+### Files affected
+- `reindex_Claude.py` (neu), `ingest_Claude.py`, `app_Claude.py`, `docs/nextstepsandquality_Claude.md`, `docs/changelog_Claude.md`, `docs/tasks_Claude.md`
+
+---
+
 ## [2026-03-09] template_strategy_Claude.md + docs/ Aufräumen
 
 ### Added

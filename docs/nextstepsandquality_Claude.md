@@ -97,23 +97,62 @@ Yes. Technically nothing stops us. The reason it's listed at #4 and not #1 is pu
 
 ---
 
-#### Implementation task list (ready to execute)
+#### Implementation task list
 
-| # | Task | Who | Risk |
-|---|---|---|---|
-| 1 | Run 3 SQL lines in Supabase SQL Editor | **You** (30 sec) | Zero — only adds a column and updates a constraint, no data deleted |
-| 2 | Update `ingest_Claude.py` — add `chunk_text()`, update `embed_and_store()` | Jan | Low |
-| 3 | Write `reindex_Claude.py` — reads existing 424 pages from DB, splits into chunks, re-embeds, upserts | Jan | Low — script has resume logic, crashes mid-way can be restarted |
-| 4 | Run `reindex_Claude.py` | Jan | Low — old data stays until overwritten, fully reversible |
-| 5 | Verify — check row count, run one test query in app | Jan | None |
-| 6 | Update `app_Claude.py` — show "Seite 47 (Abschnitt 2)" in results | Jan | Low |
-| 7 | Update changelog, tasks, PRDs | Jan | None |
+| # | Task | Status | Who | Risk |
+|---|---|---|---|---|
+| 1 | Run SQL in Supabase SQL Editor (4 statements below) | ⬜ **Your action** | You (30 sec) | Zero — only adds a column and updates a constraint, no data deleted |
+| 2 | Update `ingest_Claude.py` — add `chunk_text()`, update `embed_and_store()` | ✅ Done | Jan | — |
+| 3 | Write `reindex_Claude.py` — reads existing pages, splits into chunks, re-embeds | ✅ Done | Jan | — |
+| 4 | Run `reindex_Claude.py` | ⬜ After Step 1 | Jan | Low — old data stays until overwritten, fully reversible |
+| 5 | Verify — check row count, run one test query in app | ⬜ After Step 4 | Jan | None |
+| 6 | Update `app_Claude.py` — show "Seite 47 (Abschnitt 2)" in results | ✅ Done | Jan | — |
+| 7 | Update changelog, tasks, PRDs | ✅ Done | Jan | — |
 
-**SQL for Step 1 (you paste this into Supabase SQL Editor → Run):**
+**SQL for Step 1 — paste all 4 statements into Supabase SQL Editor → Run:**
+
 ```sql
+-- 1. Add chunk_index column (safe, existing rows get chunk_index = 0)
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS chunk_index integer NOT NULL DEFAULT 0;
+
+-- 2. Drop old unique constraint
 ALTER TABLE documents DROP CONSTRAINT IF EXISTS documents_filename_page_number_key;
-ALTER TABLE documents ADD CONSTRAINT documents_filename_page_number_chunk_index_key UNIQUE (filename, page_number, chunk_index);
+
+-- 3. Add new unique constraint (filename + page + chunk)
+ALTER TABLE documents ADD CONSTRAINT documents_filename_page_number_chunk_index_key
+  UNIQUE (filename, page_number, chunk_index);
+
+-- 4. Update match_documents RPC to also return chunk_index
+CREATE OR REPLACE FUNCTION match_documents(
+  query_embedding vector(1024),
+  match_count     int,
+  subject_filter  text    DEFAULT NULL,
+  filename_filter text[]  DEFAULT NULL
+)
+RETURNS TABLE (
+  id          bigint,
+  filename    text,
+  page_number integer,
+  chunk_index integer,
+  content     text,
+  similarity  float,
+  subject     text
+)
+LANGUAGE sql STABLE AS $$
+  SELECT id, filename, page_number, chunk_index, content,
+         1 - (embedding <=> query_embedding) AS similarity,
+         subject
+  FROM documents
+  WHERE (subject_filter IS NULL OR subject = subject_filter)
+    AND (filename_filter IS NULL OR filename = ANY(filename_filter))
+  ORDER BY embedding <=> query_embedding
+  LIMIT match_count;
+$$;
+```
+
+**After Step 1, run the reindex script:**
+```bash
+python3 reindex_Claude.py
 ```
 
 **Rollback if anything goes wrong:**

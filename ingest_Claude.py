@@ -26,9 +26,33 @@ SUPABASE_KEY    = os.getenv("SUPABASE_SERVICE_KEY")
 mistral  = Mistral(api_key=MISTRAL_API_KEY)
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-BATCH_SIZE   = 25      # pages per OCR batch (keeps each batch well under 50 MB)
-EMBED_BATCH  = 10      # pages per embedding API call
-MAX_CHARS    = 8000    # truncate very long pages before embedding
+BATCH_SIZE    = 25      # pages per OCR batch (keeps each batch well under 50 MB)
+EMBED_BATCH   = 10      # chunks per embedding API call
+MAX_CHARS     = 8000    # truncate very long pages before embedding
+CHUNK_CHARS   = 1500    # target chunk size in characters (~500 words)
+OVERLAP_CHARS = 200     # overlap between adjacent chunks
+
+
+def chunk_text(text: str) -> list[str]:
+    """Split text into overlapping chunks, breaking at word boundaries."""
+    if len(text) <= CHUNK_CHARS:
+        return [text]
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + CHUNK_CHARS
+        if end < len(text):
+            break_at = text.rfind(' ', start + CHUNK_CHARS // 2, end)
+            if break_at == -1:
+                break_at = end
+            end = break_at
+        chunk = text[start:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        start = end - OVERLAP_CHARS
+        if start >= len(text):
+            break
+    return chunks if chunks else [text]
 
 
 def split_pdf(pdf_path: str, batch_size: int) -> list[tuple[bytes, int]]:
@@ -68,34 +92,34 @@ def ocr_batch(pdf_bytes: bytes, filename: str) -> list[dict]:
 
 
 def embed_and_store(pages: list, filename: str, page_offset: int, subject: str):
-    """Embed pages in batches and upsert into Supabase."""
-    # Collect non-empty pages
-    valid = []
+    """Chunk pages, embed in batches and upsert into Supabase."""
+    all_rows = []
     for page in pages:
         text = (page.markdown or "").strip()
-        if text:
-            valid.append({
+        if not text:
+            continue
+        chunks = chunk_text(text[:MAX_CHARS])
+        for ci, chunk_content in enumerate(chunks):
+            all_rows.append({
                 "filename": filename,
                 "page_number": page_offset + page.index,
-                "content": text[:MAX_CHARS],
+                "chunk_index": ci,
+                "content": chunk_content,
                 "subject": subject,
             })
 
-    # Embed in batches
-    for i in range(0, len(valid), EMBED_BATCH):
-        chunk = valid[i : i + EMBED_BATCH]
-        texts = [p["content"] for p in chunk]
+    for i in range(0, len(all_rows), EMBED_BATCH):
+        batch = all_rows[i : i + EMBED_BATCH]
+        texts = [r["content"] for r in batch]
         emb_resp = mistral.embeddings.create(model="mistral-embed", inputs=texts)
-        for j, item in enumerate(chunk):
+        for j, item in enumerate(batch):
             item["embedding"] = emb_resp.data[j].embedding
-
-        # Upsert
         supabase.table("documents").upsert(
-            chunk,
-            on_conflict="filename,page_number",
+            batch,
+            on_conflict="filename,page_number,chunk_index",
         ).execute()
 
-    return len(valid)
+    return len(all_rows)
 
 
 def ingest(pdf_path: str, subject: str):
