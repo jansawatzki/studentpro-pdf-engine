@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-09] template_strategy_Claude.md + docs/ Aufräumen
+
+### Added
+- `docs/template_strategy_Claude.md` — Wiederverwendungsstrategie: Zielgruppen (Recht, Pharma, HR, etc.), was 100% reusable ist, was pro Client angepasst wird (30–60 min), Preismodelle, Sales-Prozess, sofortige Maßnahmen im laufenden Projekt
+- `docs/` Unterordner — alle PRD-Markdown-Dateien von Root nach `docs/` verschoben
+- `design_Claude.md` v1.1 — Current State Abschnitt mit 5-Tab-Struktur + Farbsignalen
+
+### Files affected
+- `docs/template_strategy_Claude.md` (neu), alle `_Claude.md` Docs in `docs/` verschoben
+
+---
+
 ## [2026-03-05] Initial Build — Working MVP
 
 ### Added
