@@ -97,6 +97,35 @@ Yes. Technically nothing stops us. The reason it's listed at #4 and not #1 is pu
 
 ---
 
+#### Implementation task list (ready to execute)
+
+| # | Task | Who | Risk |
+|---|---|---|---|
+| 1 | Run 3 SQL lines in Supabase SQL Editor | **You** (30 sec) | Zero — only adds a column and updates a constraint, no data deleted |
+| 2 | Update `ingest_Claude.py` — add `chunk_text()`, update `embed_and_store()` | Jan | Low |
+| 3 | Write `reindex_Claude.py` — reads existing 424 pages from DB, splits into chunks, re-embeds, upserts | Jan | Low — script has resume logic, crashes mid-way can be restarted |
+| 4 | Run `reindex_Claude.py` | Jan | Low — old data stays until overwritten, fully reversible |
+| 5 | Verify — check row count, run one test query in app | Jan | None |
+| 6 | Update `app_Claude.py` — show "Seite 47 (Abschnitt 2)" in results | Jan | Low |
+| 7 | Update changelog, tasks, PRDs | Jan | None |
+
+**SQL for Step 1 (you paste this into Supabase SQL Editor → Run):**
+```sql
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS chunk_index integer NOT NULL DEFAULT 0;
+ALTER TABLE documents DROP CONSTRAINT IF EXISTS documents_filename_page_number_key;
+ALTER TABLE documents ADD CONSTRAINT documents_filename_page_number_chunk_index_key UNIQUE (filename, page_number, chunk_index);
+```
+
+**Rollback if anything goes wrong:**
+```sql
+-- Deletes all extra chunks, restores original one-row-per-page state
+DELETE FROM documents WHERE chunk_index > 0;
+ALTER TABLE documents DROP CONSTRAINT IF EXISTS documents_filename_page_number_chunk_index_key;
+ALTER TABLE documents ADD CONSTRAINT documents_filename_page_number_key UNIQUE (filename, page_number);
+```
+
+---
+
 **How hard:** Medium (2–3 hours dev). Re-indexing cost: ~€0.04.
 
 ---
