@@ -137,6 +137,18 @@ Source of truth for implementation order. Update status after every completed ta
 
 ---
 
+## Phase 0e — Example Documents (RAG on Examples) (done ✅)
+
+- [x] Create Supabase `examples` table + `examples_filename_key` unique constraint
+- [x] Create `match_examples` RPC — semantic lookup of closest example document
+- [x] Add "📝 Beispiele hochladen" tab — upload docx/pdf, extract text, embed, store, delete
+- [x] Add `extract_text_from_docx()` (zipfile + XML, no external lib)
+- [x] Add `find_closest_example()` — retrieves best-matching example at query time
+- [x] Update Tab 2 search: inject closest example (≥ 50% similarity) as style reference into user message
+- [x] Update `DEFAULT_SYSTEM_PROMPT` — Content structure, "du" form, emojis, Fachbegriffe
+
+---
+
 ## Phase 4 — Acceptance Test
 
 - [ ] Receive real PDFs from Philipp (await kickoff)

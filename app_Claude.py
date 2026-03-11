@@ -229,6 +229,14 @@ Deine Aufgabe ist es, Lehrern zu helfen, passendes Unterrichtsmaterial für ihre
 
 Fasse die bereitgestellten Schulbuchauszüge zum angegebenen Thema klar und strukturiert zusammen. Orientiere dich dabei an den Kompetenzerwartungen des NRW-Kernlehrplans. Nenne bei jedem wichtigen Punkt die Quelle (Dateiname und Seitenzahl).
 
+**Stil und Format:**
+- Schreibe in aktivierender, niederschwelliger Sprache — direkt und verständlich, kein akademischer Jargon
+- Sprich die Leserin / den Leser mit „du" an
+- Strukturiere die Zusammenfassung in mehrere Abschnitte (z. B. „Content 1", „Content 2" usw.), jeder Abschnitt behandelt einen klar abgegrenzten Teilaspekt des Themas
+- Beginne jeden Abschnitt mit einer aussagekräftigen Überschrift mit passendem Emoji (z. B. ✅ 🗣️ ⚡️ 📌)
+- Hebe wichtige Fachbegriffe mit **Fettdruck** oder `Backticks` hervor
+- Falls ein Beispieldokument als Referenzstil beigefügt ist, orientiere dich eng an dessen Aufbau und Tonalität
+
 Antworte auf Deutsch.\
 """
 
@@ -243,6 +251,56 @@ def save_system_prompt(prompt: str):
         {"key": "system_prompt", "value": prompt},
         on_conflict="key",
     ).execute()
+
+
+# ── Example documents (few-shot style references) ──────────────────────────────
+
+def extract_text_from_docx(file_bytes: bytes) -> str:
+    """Extract plain text from a .docx file (no external library needed)."""
+    import zipfile
+    import xml.etree.ElementTree as ET
+    with zipfile.ZipFile(file_bytes) as z:
+        xml_content = z.read("word/document.xml")
+    root = ET.fromstring(xml_content)
+    ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    paragraphs = []
+    for para in root.iter(f"{ns}p"):
+        parts = [t.text for t in para.iter(f"{ns}t") if t.text]
+        line = "".join(parts).strip()
+        if line:
+            paragraphs.append(line)
+    return "\n".join(paragraphs)
+
+
+def list_examples() -> list[dict]:
+    """Return all uploaded example documents (without embeddings)."""
+    rows = supabase.table("examples") \
+        .select("id, filename, topic_name, subject, uploaded_at") \
+        .order("uploaded_at", desc=True).execute()
+    return rows.data or []
+
+
+def delete_example(example_id: int):
+    supabase.table("examples").delete().eq("id", example_id).execute()
+
+
+def is_example_uploaded(filename: str) -> bool:
+    row = supabase.table("examples").select("id").eq("filename", filename).limit(1).execute()
+    return len(row.data) > 0
+
+
+def find_closest_example(query_embedding: list, subject: str = None) -> dict | None:
+    """Return the example with highest cosine similarity, or None if table is empty."""
+    try:
+        params = {"query_embedding": query_embedding, "match_count": 1}
+        if subject:
+            params["subject_filter"] = subject
+        rows = supabase.rpc("match_examples", params).execute()
+        if rows.data:
+            return rows.data[0]
+    except Exception:
+        pass
+    return None
 
 
 def get_cached_summary(topic: str):
@@ -288,8 +346,9 @@ def load_lehrplan_from_cache(filename: str):
 st.set_page_config(page_title="student PRO — PDF Engine", layout="wide")
 st.title("student PRO — PDF Knowledge Engine")
 
-tab1, tab_lehrplan, tab2, tab3, tab4 = st.tabs([
-    "📚 Bücher hochladen", "📄 Lehrplan hochladen", "🔍 Thema abfragen", "📋 Projektübersicht", "❓ Wie funktioniert es?"
+tab1, tab_lehrplan, tab_beispiele, tab2, tab3, tab4 = st.tabs([
+    "📚 Bücher hochladen", "📄 Lehrplan hochladen", "📝 Beispiele hochladen",
+    "🔍 Thema abfragen", "📋 Projektübersicht", "❓ Wie funktioniert es?"
 ])
 
 # ── Tab 1: Upload ──────────────────────────────────────────────────────────────
@@ -565,6 +624,113 @@ with tab_lehrplan:
         st.write("Noch keine Themen gespeichert.")
 
 
+# ── Tab Beispiele: Upload style-reference documents ────────────────────────────
+with tab_beispiele:
+    st.header("Beispieldokumente hochladen")
+    st.caption(
+        "Lade hier Philipps Beispieldokumente hoch (docx oder pdf). "
+        "Das System findet beim Abfragen automatisch das passendste Beispiel "
+        "und gibt es Mistral als Stilvorlage mit — so orientiert sich die Zusammenfassung "
+        "an Philipps eigenem Format (Content 1 / Content 2 usw.)."
+    )
+
+    uploaded_example = st.file_uploader(
+        "Beispieldokument auswählen (.docx oder .pdf)",
+        type=["docx", "pdf"],
+        key="example_uploader",
+    )
+
+    if uploaded_example:
+        already = is_example_uploaded(uploaded_example.name)
+        if already:
+            st.success(f"✅ **'{uploaded_example.name}'** ist bereits hochgeladen.")
+            if st.button("🔄 Erneut hochladen (überschreiben)", key="reupload_example"):
+                already = False
+
+        if not already and st.button("Beispiel verarbeiten & speichern", type="primary", key="process_example"):
+            file_bytes = uploaded_example.read()
+            try:
+                with st.spinner("Text wird extrahiert..."):
+                    if uploaded_example.name.lower().endswith(".docx"):
+                        import io
+                        content = extract_text_from_docx(io.BytesIO(file_bytes))
+                    else:
+                        # PDF: use Mistral OCR
+                        mfile = mistral.files.upload(
+                            file={"file_name": uploaded_example.name, "content": file_bytes},
+                            purpose="ocr",
+                        )
+                        signed = mistral.files.get_signed_url(file_id=mfile.id)
+                        ocr = mistral.ocr.process(
+                            model="mistral-ocr-latest",
+                            document={"type": "document_url", "document_url": signed.url},
+                        )
+                        mistral.files.delete(file_id=mfile.id)
+                        content = "\n\n".join(p.markdown for p in ocr.pages if p.markdown)
+
+                if not content.strip():
+                    st.error("Kein Text extrahiert — Datei ist möglicherweise leer oder beschädigt.")
+                    st.stop()
+
+                # Ask user for optional topic name + subject
+                st.text_area("Extrahierter Text (Vorschau):", value=content[:1000] + ("..." if len(content) > 1000 else ""), height=150, disabled=True)
+
+                with st.spinner("Embedding wird erstellt..."):
+                    emb_resp = mistral.embeddings.create(
+                        model="mistral-embed",
+                        inputs=[content[:8000]],  # embed first 8000 chars
+                    )
+                    embedding = emb_resp.data[0].embedding
+
+                # Detect subject from filename heuristic
+                lower_name = uploaded_example.name.lower()
+                detected_subject = "Deutsch" if "deutsch" in lower_name else \
+                                   "Mathematik" if any(x in lower_name for x in ["mathe", "math"]) else None
+
+                # Extract topic name from filename (strip prefix/suffix noise)
+                raw_topic = uploaded_example.name.replace(".docx", "").replace(".pdf", "")
+
+                supabase.table("examples").upsert(
+                    {
+                        "filename": uploaded_example.name,
+                        "topic_name": raw_topic,
+                        "subject": detected_subject,
+                        "content": content,
+                        "embedding": embedding,
+                    },
+                    on_conflict="filename",
+                ).execute()
+
+                st.success(
+                    f"✅ Beispiel gespeichert! Fach erkannt: **{detected_subject or 'unbekannt'}**. "
+                    f"Es wird bei passenden Abfragen automatisch als Stilvorlage verwendet."
+                )
+
+            except Exception as e:
+                st.error(f"Fehler: {e}")
+                raise
+
+    st.divider()
+    st.subheader("Gespeicherte Beispieldokumente")
+    examples = list_examples()
+    if not examples:
+        st.write("Noch keine Beispiele hochgeladen.")
+    else:
+        for ex in examples:
+            col_a, col_b = st.columns([5, 1])
+            with col_a:
+                subj_label = f"  ·  Fach: {ex['subject']}" if ex["subject"] else ""
+                st.write(f"**{ex['filename']}**{subj_label}")
+            with col_b:
+                if st.button("🗑️ Löschen", key=f"del_example_{ex['id']}"):
+                    delete_example(ex["id"])
+                    st.rerun()
+
+    # ── Supabase unique constraint for examples.filename ──────────────────────
+    # (Created once via Management API — documented here for reference)
+    # ALTER TABLE examples ADD CONSTRAINT examples_filename_key UNIQUE (filename);
+
+
 # ── Tab 2: Search ──────────────────────────────────────────────────────────────
 with tab2:
     st.header("Thema abfragen")
@@ -660,13 +826,30 @@ with tab2:
                         [f"[{r['filename']}, Seite {r['page_number']}]\n{r['content']}" for r in chunks]
                     )
 
+                    # ── Find closest example for style reference ───────────────
+                    closest_example = find_closest_example(query_embedding, subject=subject)
+                    if closest_example and closest_example["similarity"] >= 0.5:
+                        example_block = (
+                            f"\n\n---\n\n**Beispieldokument als Stilvorlage** "
+                            f"(orientiere dich an Aufbau und Tonalität, nicht am Inhalt):\n\n"
+                            f"{closest_example['content'][:4000]}"
+                        )
+                        example_note = f"📄 Stilvorlage: **{closest_example['filename']}** (Ähnlichkeit: {closest_example['similarity']:.0%})"
+                    else:
+                        example_block = ""
+                        example_note = None
+
                     with st.spinner("Zusammenfassung wird erstellt (Mistral Large)..."):
                         system_prompt = load_system_prompt()
+                        user_message = (
+                            f"Thema: {keyword}\n\nRelevante Auszüge:\n{context}"
+                            f"{example_block}"
+                        )
                         response = mistral.chat.complete(
                             model="mistral-large-latest",
                             messages=[
                                 {"role": "system", "content": system_prompt},
-                                {"role": "user", "content": f"Thema: {keyword}\n\nRelevante Auszüge:\n{context}"},
+                                {"role": "user", "content": user_message},
                             ],
                         )
 
@@ -681,6 +864,8 @@ with tab2:
                     save_cached_summary(keyword, summary_text, sources)
 
                     st.subheader("Zusammenfassung")
+                    if example_note:
+                        st.caption(example_note)
                     st.markdown(summary_text)
 
                     st.divider()

@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-11] Beispieldokumente-Feature (RAG on Examples)
+
+### Added
+- **Supabase `examples` table** — speichert Philipps Beispieldokumente (filename, topic_name, subject, content, embedding, uploaded_at) + unique constraint auf filename
+- **Supabase `match_examples` RPC** — gibt das semantisch ähnlichste Beispiel zu einem Query-Embedding zurück (optional nach Fach gefiltert)
+- **Tab "📝 Beispiele hochladen"** — neue UI-Seite in `app_Claude.py`:
+  - Upload von `.docx` und `.pdf` Beispieldokumenten
+  - Docx-Extraktion via `extract_text_from_docx()` (nur Python-Stdlib, kein python-docx nötig)
+  - PDF-Extraktion via Mistral OCR
+  - Textvorschau + automatische Fach-Erkennung aus Dateiname
+  - Embedding des vollen Inhalts → Speicherung in `examples`
+  - Liste aller gespeicherten Beispiele mit 🗑️ Löschen-Button
+- **`extract_text_from_docx()`** — extrahiert Text aus .docx via zipfile + XML-Parsing
+- **`list_examples()`**, **`delete_example()`**, **`is_example_uploaded()`**, **`find_closest_example()`** — neue Hilfsfunktionen
+
+### Changed
+- **Tab 2 "Thema abfragen"** — nach dem Embedding der Topic-Query wird automatisch `match_examples` aufgerufen; wenn ein Beispiel mit Ähnlichkeit ≥ 50% gefunden wird, wird es als Stilvorlage in den User-Message-Block injiziert; im UI erscheint eine Caption "📄 Stilvorlage: ..."
+- **`DEFAULT_SYSTEM_PROMPT`** — erweitert um Stil- und Format-Anweisungen: Content 1/2/3 Struktur, "du"-Form, Emojis in Überschriften, Fachbegriffe hervorheben, Hinweis auf Beispieldokument
+
+### Files affected
+- `app_Claude.py`, `docs/changelog_Claude.md`, `docs/tasks_Claude.md`
+
+---
+
 ## [2026-03-09] Chunking-Implementierung (Steps 2–6)
 
 ### Added
