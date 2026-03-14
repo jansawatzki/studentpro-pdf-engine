@@ -1,5 +1,5 @@
 streamlit
-mistralai
+mistralai>=1.0.0
 supabase
 python-dotenv
 openpyxl
