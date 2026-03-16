@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-16] Expandable results in Tab Thema abfragen
+
+### Changed
+- `app_Claude.py` Tab 2: Zusammenfassung und Quellseiten in aufklappbare Sektionen verpackt
+  - `📝 Zusammenfassung` — standardmäßig aufgeklappt
+  - `📚 Quellseiten (N Treffer)` — standardmäßig zugeklappt
+  - Gilt für beide Pfade: Cache-Treffer und frisch generierte Ergebnisse
+
+---
+
 ## [2026-03-16] Update cost estimates in Wie funktioniert es? tab
 
 ### Changed

@@ -877,15 +877,14 @@ with tab2:
         cached_summary, cached_sources = get_cached_summary(keyword)
         if cached_summary:
             st.info("💾 **Aus Cache geladen** — keine Mistral-Credits verbraucht.")
-            st.subheader("Zusammenfassung")
-            st.markdown(cached_summary)
+            with st.expander("📝 Zusammenfassung", expanded=True):
+                st.markdown(cached_summary)
             if cached_sources:
-                st.divider()
-                st.subheader(f"Quellseiten ({len(cached_sources)} Treffer)")
-                for r in cached_sources:
-                    chunk_label = f" (Abschnitt {r['chunk_index']+1})" if r.get('chunk_index', 0) > 0 else ""
-                    with st.expander(f"**{r['filename']}** — Seite {r['page_number']}{chunk_label}  (Relevanz: {r['similarity']:.0%})"):
-                        st.write(r["content"][:800] + ("..." if len(r["content"]) > 800 else ""))
+                with st.expander(f"📚 Quellseiten ({len(cached_sources)} Treffer)", expanded=False):
+                    for r in cached_sources:
+                        chunk_label = f" (Abschnitt {r['chunk_index']+1})" if r.get('chunk_index', 0) > 0 else ""
+                        with st.expander(f"**{r['filename']}** — Seite {r['page_number']}{chunk_label}  (Relevanz: {r['similarity']:.0%})"):
+                            st.write(r["content"][:800] + ("..." if len(r["content"]) > 800 else ""))
 
             if st.button("🔄 Neu generieren (Cache überschreiben)"):
                 cached_summary = None  # fall through to fresh run
@@ -949,20 +948,19 @@ with tab2:
                     # Save to cache
                     save_cached_summary(keyword, summary_text, sources)
 
-                    st.subheader("Zusammenfassung")
-                    if example_note:
-                        st.caption(example_note)
-                    st.markdown(summary_text)
+                    with st.expander("📝 Zusammenfassung", expanded=True):
+                        if example_note:
+                            st.caption(example_note)
+                        st.markdown(summary_text)
 
-                    st.divider()
-                    st.subheader(f"Quellseiten ({len(chunks)} Treffer)")
-                    for r in chunks:
-                        chunk_label = f" (Abschnitt {r.get('chunk_index', 0)+1})" if r.get('chunk_index', 0) > 0 else ""
-                        with st.expander(
-                            f"**{r['filename']}** — Seite {r['page_number']}{chunk_label}  "
-                            f"(Relevanz: {r['similarity']:.0%})"
-                        ):
-                            st.write(r["content"][:800] + ("..." if len(r["content"]) > 800 else ""))
+                    with st.expander(f"📚 Quellseiten ({len(chunks)} Treffer)", expanded=False):
+                        for r in chunks:
+                            chunk_label = f" (Abschnitt {r.get('chunk_index', 0)+1})" if r.get('chunk_index', 0) > 0 else ""
+                            with st.expander(
+                                f"**{r['filename']}** — Seite {r['page_number']}{chunk_label}  "
+                                f"(Relevanz: {r['similarity']:.0%})"
+                            ):
+                                st.write(r["content"][:800] + ("..." if len(r["content"]) > 800 else ""))
 
             except Exception as e:
                 st.error(f"Fehler bei der Suche: {e}")
