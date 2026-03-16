@@ -1092,8 +1092,8 @@ und werden dauerhaft gespeichert.
 
     st.markdown("---")
 
-    st.subheader("💰 Was kostet was?")
-    st.markdown("""
+    with st.expander("💰 Was kostet was?"):
+     st.markdown("""
 Die Kosten entstehen durch drei verschiedene Mistral-Dienste.
 Hier die realen Zahlen — gemessen an echten Verarbeitungen in diesem System:
 
@@ -1121,7 +1121,7 @@ Hier die realen Zahlen — gemessen an echten Verarbeitungen in diesem System:
 
 Nach der ersten Runde — alle Bücher indexiert, alle Themen einmal abgefragt —
 läuft das System ohne laufende Kosten, bis neue Bücher oder Themen hinzukommen.
-    """)
+     """)
 
     st.markdown("---")
 
@@ -1161,7 +1161,7 @@ Das ist der aktuelle Stand — was das System schon kennt und durchsuchen kann.
 Alle drei Testthemen landen sofort auf Platz 1. Der formale Abnahmetest (Top-10, ≥ 8/10) steht noch aus.
         """)
 
-    with st.expander("🔧 Technischer Stack (für Rachid)"):
+    with st.expander("🔧 Technischer Stack"):
         st.markdown("""
 | Komponente | Technologie | Warum |
 |---|---|---|
