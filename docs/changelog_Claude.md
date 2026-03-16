@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-15] Multi-file upload + deployment doc
+
+### Changed
+- `app_Claude.py` Tab "Beispiele hochladen": `st.file_uploader` auf `accept_multiple_files=True` umgestellt — mehrere docx/pdf gleichzeitig auswählbar; zeigt neue vs. bereits vorhandene Dateien; verarbeitet alle in einer Schleife mit Fortschrittsbalken
+
+### Added
+- `docs/deployment_Streamlit_Claude.md` — Deployment-Guide: Auto-Deploy-Flow, requirements.txt Regeln, was NICHT rein darf (pymupdf), Debug-Anleitung, Secrets, bekannte Fehler mit Ursachen und Fixes
+
+---
+
 ## [2026-03-11] Beispieldokumente-Feature (RAG on Examples)
 
 ### Added

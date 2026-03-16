@@ -137,6 +137,13 @@ Source of truth for implementation order. Update status after every completed ta
 
 ---
 
+## Phase 0f — Multi-upload + Deployment Docs (done ✅)
+
+- [x] Multi-file upload in "Beispiele hochladen" tab (`accept_multiple_files=True`, progress loop)
+- [x] Create `docs/deployment_Streamlit_Claude.md` — deployment guide, debug steps, known issues
+
+---
+
 ## Phase 0e — Example Documents (RAG on Examples) (done ✅)
 
 - [x] Create Supabase `examples` table + `examples_filename_key` unique constraint

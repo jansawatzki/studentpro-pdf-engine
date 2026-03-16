@@ -634,30 +634,43 @@ with tab_beispiele:
         "an Philipps eigenem Format (Content 1 / Content 2 usw.)."
     )
 
-    uploaded_example = st.file_uploader(
-        "Beispieldokument auswählen (.docx oder .pdf)",
+    uploaded_examples = st.file_uploader(
+        "Beispieldokumente auswählen (.docx oder .pdf) — mehrere gleichzeitig möglich",
         type=["docx", "pdf"],
+        accept_multiple_files=True,
         key="example_uploader",
     )
 
-    if uploaded_example:
-        already = is_example_uploaded(uploaded_example.name)
-        if already:
-            st.success(f"✅ **'{uploaded_example.name}'** ist bereits hochgeladen.")
-            if st.button("🔄 Erneut hochladen (überschreiben)", key="reupload_example"):
-                already = False
+    if uploaded_examples:
+        new_files = [f for f in uploaded_examples if not is_example_uploaded(f.name)]
+        already_uploaded = [f for f in uploaded_examples if is_example_uploaded(f.name)]
 
-        if not already and st.button("Beispiel verarbeiten & speichern", type="primary", key="process_example"):
-            file_bytes = uploaded_example.read()
-            try:
-                with st.spinner("Text wird extrahiert..."):
-                    if uploaded_example.name.lower().endswith(".docx"):
-                        import io
+        if already_uploaded:
+            st.info(f"ℹ️ {len(already_uploaded)} Datei(en) bereits vorhanden: {', '.join(f.name for f in already_uploaded)}")
+
+        if new_files:
+            st.write(f"**{len(new_files)} neue Datei(en) bereit zum Verarbeiten:**")
+            for f in new_files:
+                st.write(f"　· {f.name}")
+
+        if st.button(
+            f"Alle verarbeiten & speichern ({len(new_files)} neu)" if new_files else "Alle erneut hochladen (überschreiben)",
+            type="primary",
+            key="process_examples",
+            disabled=not uploaded_examples,
+        ):
+            import io
+            files_to_process = new_files if new_files else uploaded_examples
+            progress = st.progress(0, text="Starte...")
+            for idx, uploaded_file in enumerate(files_to_process):
+                progress.progress(idx / len(files_to_process), text=f"Verarbeite {uploaded_file.name} ({idx+1}/{len(files_to_process)})...")
+                file_bytes = uploaded_file.read()
+                try:
+                    if uploaded_file.name.lower().endswith(".docx"):
                         content = extract_text_from_docx(io.BytesIO(file_bytes))
                     else:
-                        # PDF: use Mistral OCR
                         mfile = mistral.files.upload(
-                            file={"file_name": uploaded_example.name, "content": file_bytes},
+                            file={"file_name": uploaded_file.name, "content": file_bytes},
                             purpose="ocr",
                         )
                         signed = mistral.files.get_signed_url(file_id=mfile.id)
@@ -668,47 +681,33 @@ with tab_beispiele:
                         mistral.files.delete(file_id=mfile.id)
                         content = "\n\n".join(p.markdown for p in ocr.pages if p.markdown)
 
-                if not content.strip():
-                    st.error("Kein Text extrahiert — Datei ist möglicherweise leer oder beschädigt.")
-                    st.stop()
+                    if not content.strip():
+                        st.warning(f"⚠️ {uploaded_file.name} — kein Text extrahiert, übersprungen.")
+                        continue
 
-                # Ask user for optional topic name + subject
-                st.text_area("Extrahierter Text (Vorschau):", value=content[:1000] + ("..." if len(content) > 1000 else ""), height=150, disabled=True)
-
-                with st.spinner("Embedding wird erstellt..."):
                     emb_resp = mistral.embeddings.create(
                         model="mistral-embed",
-                        inputs=[content[:8000]],  # embed first 8000 chars
+                        inputs=[content[:8000]],
                     )
                     embedding = emb_resp.data[0].embedding
 
-                # Detect subject from filename heuristic
-                lower_name = uploaded_example.name.lower()
-                detected_subject = "Deutsch" if "deutsch" in lower_name else \
-                                   "Mathematik" if any(x in lower_name for x in ["mathe", "math"]) else None
+                    lower_name = uploaded_file.name.lower()
+                    detected_subject = "Deutsch" if "deutsch" in lower_name else \
+                                       "Mathematik" if any(x in lower_name for x in ["mathe", "math"]) else None
+                    raw_topic = uploaded_file.name.replace(".docx", "").replace(".pdf", "")
 
-                # Extract topic name from filename (strip prefix/suffix noise)
-                raw_topic = uploaded_example.name.replace(".docx", "").replace(".pdf", "")
+                    supabase.table("examples").upsert(
+                        {"filename": uploaded_file.name, "topic_name": raw_topic,
+                         "subject": detected_subject, "content": content, "embedding": embedding},
+                        on_conflict="filename",
+                    ).execute()
+                    st.success(f"✅ {uploaded_file.name} gespeichert (Fach: {detected_subject or 'unbekannt'})")
 
-                supabase.table("examples").upsert(
-                    {
-                        "filename": uploaded_example.name,
-                        "topic_name": raw_topic,
-                        "subject": detected_subject,
-                        "content": content,
-                        "embedding": embedding,
-                    },
-                    on_conflict="filename",
-                ).execute()
+                except Exception as e:
+                    st.error(f"Fehler bei {uploaded_file.name}: {e}")
 
-                st.success(
-                    f"✅ Beispiel gespeichert! Fach erkannt: **{detected_subject or 'unbekannt'}**. "
-                    f"Es wird bei passenden Abfragen automatisch als Stilvorlage verwendet."
-                )
-
-            except Exception as e:
-                st.error(f"Fehler: {e}")
-                raise
+            progress.progress(1.0, text="Fertig!")
+            st.rerun()
 
     st.divider()
     st.subheader("Gespeicherte Beispieldokumente")
