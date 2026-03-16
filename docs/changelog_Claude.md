@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-16] Remove Projektübersicht tab, merge into Wie funktioniert es?
+
+### Changed
+- `app_Claude.py`: Tab "Projektübersicht" entfernt — war redundant zu den Expander-Schritten
+- `app_Claude.py`: Tab "Wie funktioniert es?" ergänzt um zwei neue Expander:
+  - "📊 Was ist gerade in der Datenbank?" — DB-Tabellen, aktuelle Inhalte, erste Testergebnisse
+  - "🔧 Technischer Stack (für Rachid)" — vollständige Stack-Tabelle + Daten-Fluss in einem Satz
+- Tab-Anzahl: 6 → 5
+
+---
+
 ## [2026-03-16] Plain-language explainers in UI
 
 ### Changed
