@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-16] Explain result levers to Philipp
+
+### Added
+- `app_Claude.py` Tab „Wie funktioniert es?": neuer Expander „🎛️ Wie kann ich die Ergebnisse beeinflussen?" — erklärt alle Hebel in Phase 1 (Retrieval) und Phase 2 (Generierung) mit Tabelle + Problemlösungs-Guide
+- `docs/app-flow_Claude.md` Kapitel 5 „How Philipp influences the results" — lever-by-lever Tabellen für beide Phasen, Problemlösungs-Mapping
+
+---
+
 ## [2026-03-16] Rewrite app-flow_Claude.md to reflect current system
 
 ### Changed

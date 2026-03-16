@@ -329,7 +329,52 @@ DAILY USE (per topic):
 
 ---
 
-## 5. What is NOT built yet (planned)
+## 5. How Philipp influences the results — lever by lever
+
+### Phase 1 levers — what Philipp controls in the retrieval
+
+| Lever | Where in UI | Effect |
+|---|---|---|
+| **Welche Bücher durchsucht werden** | Checkboxen oben in Tab „Thema abfragen" | Nur ausgewählte Bücher fließen in die Suche ein — wichtig wenn z.B. nur Klett relevant ist |
+| **Anzahl Treffer (top_k)** | Zahlenfeld rechts neben dem Dropdown | Mehr Treffer = breiteres Netz, mehr Seiten zurück. Standard 10, max 20 |
+| **Themenformulierung** | Dropdown — kommt aus der topics-Tabelle | Die genaue Formulierung des Themas erzeugt einen anderen Fingerabdruck → findet andere Seiten. Kurze, klare Begriffe funktionieren oft besser als lange Sätze |
+| **Welche Bücher indexiert sind** | Tab „Bücher hochladen" | Nur indexierte Bücher können durchsucht werden. Mehr Bücher = mehr Fundstellen |
+
+**Was Philipp NICHT direkt steuert in Phase 1:**
+- Die interne Chunk-Größe (1500 Zeichen, ~500 Wörter) — fest eingestellt
+- Den Ähnlichkeitsalgorithmus (cosine similarity, pgvector) — fest eingestellt
+
+---
+
+### Phase 2 levers — what Philipp controls in the generation
+
+| Lever | Where in UI | Effect |
+|---|---|---|
+| **System-Prompt** | ⚙️ Expander in Tab „Thema abfragen" | Die Grundanweisung an Mistral Large. Bestimmt Ton, Struktur, Sprache, Zielgruppe. Änderungen gelten sofort und werden dauerhaft gespeichert |
+| **Beispieldokumente** | Tab „Beispiele hochladen" | Wenn ein Beispiel thematisch passt (≥ 50% Ähnlichkeit), orientiert sich Mistral am Aufbau und Stil des Beispiels — ohne den System-Prompt zu ändern |
+| **Anzahl Treffer (top_k)** | Zahlenfeld in Tab „Thema abfragen" | Mehr Quellseiten = mehr Kontext für Mistral → potenziell reichhaltigere Zusammenfassung, aber auch mehr Rauschen |
+| **🔄 Neu generieren** | Button unter gecachtem Ergebnis | Erzwingt eine neue Zusammenfassung aus denselben Quellen — sinnvoll nach Prompt-Änderungen oder neuen Beispieldokumenten |
+
+**Was Philipp heute NICHT steuert in Phase 2 (geplant):**
+- Einzelne Quellseiten aus dem Kontext entfernen bevor die Zusammenfassung erstellt wird
+- Phase 1 und Phase 2 als separate Buttons aufrufen (heute: ein Button für beide)
+
+---
+
+### Zusammenfassung: Welcher Hebel hilft bei welchem Problem?
+
+| Problem | Lösung |
+|---|---|
+| Falsche Seiten gefunden — thematisch nicht relevant | Themenformulierung im Dropdown ändern (kürzer/präziser) |
+| Zu wenig Treffer — Thema kommt nur in einem Buch vor | top_k erhöhen (z.B. auf 15) |
+| Zusammenfassung hat falschen Ton / Stil | System-Prompt anpassen (⚙️) |
+| Zusammenfassung hat falsches Format (kein Content 1/2/3) | Beispieldokument für dieses Thema hochladen |
+| Neues Beispieldokument hochgeladen, alte Zusammenfassung gecacht | 🔄 Neu generieren klicken |
+| Buch fehlt in den Suchergebnissen | Prüfen ob Buch in Tab 1 hochgeladen und indexiert ist |
+
+---
+
+## 6. What is NOT built yet (planned)
 
 | Feature | Phase | Notes |
 |---|---|---|

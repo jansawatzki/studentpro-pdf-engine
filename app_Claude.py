@@ -1092,6 +1092,52 @@ und werden dauerhaft gespeichert.
 
     st.markdown("---")
 
+    with st.expander("🎛️ Wie kann ich die Ergebnisse beeinflussen?"):
+        st.markdown("""
+Das System hat zwei Schritte — und in jedem Schritt hast du andere Möglichkeiten einzugreifen.
+
+---
+
+#### Schritt 1 — Welche Seiten werden gefunden?
+
+Das sind die „Quellseiten" die du unten im Tab siehst. Hier hast du drei Hebel:
+
+| Hebel | Wo | Was passiert |
+|---|---|---|
+| **Bücher auswählen** | Checkboxen oben im Tab | Nur die angehakten Bücher werden durchsucht |
+| **Anzahl Treffer** | Zahlenfeld rechts (Standard: 10) | Mehr Treffer = breiteres Netz — z.B. 15 wenn du mehr Fundstellen willst |
+| **Themenformulierung** | Das Dropdown selbst | Das System sucht nach dem, was dem Thema-Begriff am ähnlichsten ist. Kürzere, präzise Begriffe finden oft bessere Treffer als lange Sätze |
+
+**Merke:** Schritt 1 entscheidet, *was ins Material reinkommt*. Kein KI-Eingriff hier — nur Textvergleich.
+
+---
+
+#### Schritt 2 — Wie wird der Text geschrieben?
+
+Das ist die „Zusammenfassung" die du oben siehst. Hier hast du vier Hebel:
+
+| Hebel | Wo | Was passiert |
+|---|---|---|
+| **System-Prompt** | ⚙️ Klappen im Tab „Thema abfragen" | Die Grundanweisung an die KI. Bestimmt Ton, Struktur, Sprache. Änderungen gelten sofort |
+| **Beispieldokumente** | Tab „Beispiele hochladen" | Wenn ein Beispiel thematisch passt, schreibt die KI im gleichen Format und Stil |
+| **Anzahl Treffer (top_k)** | Zahlenfeld | Mehr Quellseiten → mehr Kontext für die KI → andere Zusammenfassung |
+| **🔄 Neu generieren** | Button unter dem Ergebnis | Zwingt das System, nochmal zu schreiben — z.B. nach einer Prompt-Änderung |
+
+---
+
+#### Welcher Hebel hilft bei welchem Problem?
+
+| Problem | Was tun |
+|---|---|
+| Die gefundenen Seiten sind nicht relevant | Themenformulierung präzisieren — z.B. statt „Kommunikation" besser „Kommunikationsmodelle Schulz von Thun" |
+| Zu wenige Treffer | top_k auf 15–20 erhöhen |
+| Zusammenfassung klingt falsch / zu förmlich | System-Prompt anpassen (⚙️) |
+| Zusammenfassung hat nicht das richtige Format | Beispieldokument für dieses Thema hochladen |
+| Neues Beispiel hochgeladen, altes Ergebnis noch gecacht | 🔄 Neu generieren klicken |
+        """)
+
+    st.markdown("---")
+
     with st.expander("💰 Was kostet was?"):
      st.markdown("""
 Die Kosten entstehen durch drei verschiedene Mistral-Dienste.
