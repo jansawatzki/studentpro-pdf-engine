@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-16] Cost tracking documentation
+
+### Added
+- `docs/cost_tracking_Claude.md`: Vollständige Erklärung des Cost-Tracking-Systems — Preise, Messprinzip, DB-Tabelle, SQL-Abfragen, bekannte Lücken, Kostentabelle für typische Bücher
+
+---
+
 ## [2026-03-16] Cost tracking per document
 
 ### Added

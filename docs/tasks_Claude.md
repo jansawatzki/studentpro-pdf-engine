@@ -139,6 +139,8 @@ Source of truth for implementation order. Update status after every completed ta
 
 ## Phase 0g — Cost Tracking per Document (done ✅)
 
+- [x] Create `docs/cost_tracking_Claude.md` — explains pricing constants, measurement method, DB schema, SQL queries, known gaps, cost estimates per book type
+
 - [x] Create `processing_log` table in Supabase (filename, operation, pages, tokens_in, tokens_out, cost_usd, created_at)
 - [x] Add pricing constants to `app_Claude.py` (OCR: $0.002/page, Embed: $0.10/1M tokens, Large-in: $2/1M, Large-out: $6/1M)
 - [x] Capture `emb_resp.usage.prompt_tokens` per page during Tab 1 embed loop
