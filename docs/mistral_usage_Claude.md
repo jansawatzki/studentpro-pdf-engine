@@ -58,11 +58,26 @@ SELECT topic, hits FROM summary_cache ORDER BY hits DESC;
 
 ---
 
-## Offene Fragen / To Explore
+## ✅ Analyse (Stand 16.03.2026)
 
-- [ ] Warum zeigt die Mistral-Oberfläche keinen historischen Verbrauch aus März?
-      → Mögliche Ursache: Mistral zeigt nur die letzten 30 Tage, oder der Account
-        hat sich geändert (anderer Login als der, unter dem der Key erstellt wurde)
-- [ ] Unter welchem Mistral-Account wurde der API-Key `MISTRAL_API_KEY` erstellt?
-      → API-Keys sind accountgebunden — Usage ist nur im Account des Key-Erstellers sichtbar
-- [ ] Hat Rachid einen eigenen Key verwendet, oder denselben?
+**Account und Key stimmen überein.**
+
+Der Key in `config_Claude.env` endet auf `GTug` — das ist der Key namens **"Claude"**
+im Mistral-Account von Jan Sawatzki (sawatzki.jan@gmail.com).
+Letzter Einsatz laut Mistral-Console: **March 16th, 2026** → passt, aktiv.
+
+**Warum zeigt die aktuelle Billing-Ansicht €0,00?**
+
+Die echten Kosten (OCR + Embeddings für Klett + Paul D, ~424 Seiten) sind am **05.03.2026**
+angefallen — also in einem früheren Abrechnungszeitraum. Die aktuelle Ansicht zeigt
+nur den laufenden Zeitraum, der danach begann.
+
+**Wo die historischen Kosten zu finden sind:**
+→ Mistral Console → **Billing → Invoices** (vergangene Rechnungen / Abrechnungsperioden)
+
+**Warum ist der laufende Verbrauch wirklich €0?**
+Der Cache funktioniert. Alle 3 Testthemen sind gecacht seit März — Mistral wird bei
+Folgeabfragen nicht aufgerufen. Neuer Verbrauch entsteht erst wenn:
+- ein neues Buch indexiert wird
+- ein neues Thema zum ersten Mal abgefragt wird
+- jemand auf "🔄 Neu generieren" klickt
