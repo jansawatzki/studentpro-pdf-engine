@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-16] Cost tracking per document
+
+### Added
+- `app_Claude.py`: Pricing constants — OCR $0.002/page, Embed $0.10/1M tokens, Large $2/$6 per 1M tokens
+- `app_Claude.py`: `log_processing_cost()` — inserts one row per API call into `processing_log` table; never raises
+- `app_Claude.py`: `get_book_costs()` — aggregates total cost per filename from `processing_log`
+- Supabase: `processing_log` table created (filename, operation, pages, tokens_in, tokens_out, cost_usd, created_at) + index on filename
+
+### Changed
+- `app_Claude.py` Tab 1 (Bücher hochladen): After OCR logs page count + cost; accumulates embed token counts per page via `emb_resp.usage.prompt_tokens`; success message now shows `💰 Kosten dieser Verarbeitung: $X.XXXX` broken down by OCR + Embedding
+- `app_Claude.py` Tab 1 "Indexierte Bücher" list: each book now shows `💰 $X.XXXX` total processing cost fetched from `processing_log`
+
+---
+
 ## [2026-03-16] Remove Projektübersicht tab, merge into Wie funktioniert es?
 
 ### Changed

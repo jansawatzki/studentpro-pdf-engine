@@ -29,6 +29,12 @@ EXCEL_PATH = os.path.join(os.path.dirname(__file__), "themen_Claude.xlsx")
 CHUNK_CHARS   = 1500    # target chunk size in characters (~500 words)
 OVERLAP_CHARS = 200     # overlap between adjacent chunks
 
+# Mistral API pricing (USD, Scale Plan — March 2026)
+PRICE_OCR_PER_PAGE    = 0.002              # $2 per 1 000 pages
+PRICE_EMBED_PER_TOKEN = 0.10 / 1_000_000  # $0.10 per 1M tokens
+PRICE_LARGE_IN_TOKEN  = 2.0  / 1_000_000  # $2 per 1M input tokens
+PRICE_LARGE_OUT_TOKEN = 6.0  / 1_000_000  # $6 per 1M output tokens
+
 
 def chunk_text(text: str) -> list[str]:
     """Split text into overlapping chunks, breaking at word boundaries."""
@@ -327,6 +333,34 @@ def is_already_indexed(filename: str) -> bool:
     return len(row.data) > 0
 
 
+def log_processing_cost(filename: str, operation: str, pages: int = None,
+                        tokens_in: int = None, tokens_out: int = None, cost_usd: float = 0.0):
+    """Append one row to processing_log. Never raises — cost tracking must not block the pipeline."""
+    try:
+        supabase.table("processing_log").insert({
+            "filename": filename, "operation": operation,
+            "pages": pages, "tokens_in": tokens_in,
+            "tokens_out": tokens_out, "cost_usd": round(cost_usd, 6),
+        }).execute()
+    except Exception:
+        pass
+
+
+def get_book_costs(filename: str) -> dict:
+    """Return {total_cost_usd, pages} aggregated from processing_log for a book."""
+    try:
+        rows = supabase.table("processing_log") \
+            .select("operation, pages, cost_usd") \
+            .eq("filename", filename).execute()
+        if not rows.data:
+            return {}
+        total = sum(r["cost_usd"] or 0 for r in rows.data)
+        pages = sum(r["pages"] or 0 for r in rows.data if r.get("operation") == "ocr")
+        return {"total_cost_usd": total, "pages": pages}
+    except Exception:
+        return {}
+
+
 def load_lehrplan_from_cache(filename: str):
     """Return (subject, by_course_dict) if this PDF was already extracted, else (None, None)."""
     rows = supabase.table("topics").select("subject, course_type, topic") \
@@ -386,11 +420,14 @@ with tab1:
                     )
                     pages = ocr_response.pages
 
-                st.info(f"OCR abgeschlossen — {len(pages)} Seiten erkannt")
+                ocr_cost = len(pages) * PRICE_OCR_PER_PAGE
+                log_processing_cost(uploaded_file.name, "ocr", pages=len(pages), cost_usd=ocr_cost)
+                st.info(f"OCR abgeschlossen — {len(pages)} Seiten erkannt  (${ocr_cost:.4f})")
 
                 progress = st.progress(0, text="Starte Einbettung...")
                 skipped = 0
                 total_chunks_stored = 0
+                total_embed_tokens = 0
                 for i, page in enumerate(pages):
                     text = page.markdown.strip() if page.markdown else ""
                     if not text:
@@ -401,6 +438,8 @@ with tab1:
                     page_chunks = chunk_text(text[:8000])
                     texts_to_embed = [c for c in page_chunks]
                     emb_resp = mistral.embeddings.create(model="mistral-embed", inputs=texts_to_embed)
+                    if hasattr(emb_resp, "usage") and emb_resp.usage:
+                        total_embed_tokens += getattr(emb_resp.usage, "prompt_tokens", 0) or 0
                     for ci, chunk_content in enumerate(page_chunks):
                         embedding = emb_resp.data[ci].embedding
                         supabase.table("documents").upsert(
@@ -412,10 +451,17 @@ with tab1:
 
                     progress.progress((i + 1) / len(pages), text=f"Seite {i+1}/{len(pages)} ({len(page_chunks)} Abschnitte) gespeichert")
 
+                embed_cost = total_embed_tokens * PRICE_EMBED_PER_TOKEN
+                if total_embed_tokens > 0:
+                    log_processing_cost(uploaded_file.name, "embed",
+                                        tokens_in=total_embed_tokens, cost_usd=embed_cost)
                 mistral.files.delete(file_id=mistral_file.id)
+                total_cost = ocr_cost + embed_cost
                 st.success(
                     f"Fertig! {len(pages) - skipped} Seiten → {total_chunks_stored} Abschnitte indexiert "
-                    f"({skipped} leere Seiten übersprungen) — '{uploaded_file.name}'"
+                    f"({skipped} leere Seiten übersprungen) — '{uploaded_file.name}'\n\n"
+                    f"💰 **Kosten dieser Verarbeitung: ${total_cost:.4f}** "
+                    f"(OCR: ${ocr_cost:.4f} · Embedding: ${embed_cost:.4f})"
                 )
 
             except Exception as e:
@@ -435,10 +481,15 @@ with tab1:
             for fname in sorted(pages_per_file.keys()):
                 n_pages  = len(pages_per_file[fname])
                 n_chunks = chunks_per_file[fname]
+                costs = get_book_costs(fname)
+                cost_label = (
+                    f"  ·  💰 ${costs['total_cost_usd']:.4f}"
+                    if costs.get("total_cost_usd") else ""
+                )
                 if n_chunks > n_pages:
-                    st.write(f"- **{fname}** — {n_pages} Seiten ({n_chunks} Abschnitte indexiert)")
+                    st.write(f"- **{fname}** — {n_pages} Seiten ({n_chunks} Abschnitte){cost_label}")
                 else:
-                    st.write(f"- **{fname}** — {n_pages} Seiten indexiert")
+                    st.write(f"- **{fname}** — {n_pages} Seiten{cost_label}")
         else:
             st.write("Noch keine Bücher indexiert.")
     except Exception as e:
