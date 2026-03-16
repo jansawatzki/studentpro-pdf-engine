@@ -691,18 +691,18 @@ with tab_beispiele:
 Bei einer `.docx`-Datei liest das System den Text direkt aus der Datei.
 Bei einer `.pdf`-Datei schickt es die Datei an Mistral OCR, das die Seiten wie ein Scanner in Text umwandelt.
 
-**Schritt 2 — Fingerabdruck berechnen**
-Mistral Embed berechnet einen „Fingerabdruck" des Textes — eine Liste von 1024 Zahlen,
+**Schritt 2 — Bedeutungsmuster berechnen**
+Mistral Embed berechnet einen „Bedeutungsmuster" des Textes — eine Liste von 1024 Zahlen,
 die beschreiben, worum es in dem Dokument geht. Ähnliche Themen → ähnliche Zahlen.
 
 **Schritt 3 — Speichern**
-Text + Fingerabdruck werden in der Datenbank abgelegt (Tabelle `examples`).
+Text + Bedeutungsmuster werden in der Datenbank abgelegt (Tabelle `examples`).
 
 ---
 
 **Was passiert beim Abfragen?**
 
-Wenn du ein Thema abfragst (z.B. *„Lyrische Texte"*), berechnet das System auch für dieses Thema einen Fingerabdruck.
+Wenn du ein Thema abfragst (z.B. *„Lyrische Texte"*), berechnet das System auch für dieses Thema einen Bedeutungsmuster.
 Es vergleicht ihn dann mit den Fingerabdrücken aller hochgeladenen Beispieldokumente.
 
 Wenn ein Beispiel gut passt (Ähnlichkeit ≥ 50 %), wird es Mistral mitgeschickt:
@@ -993,11 +993,11 @@ und schreibt daraus automatisch eine Zusammenfassung.
 1. **Lesen** — Die KI (Mistral OCR) liest jede einzelne Seite des PDFs und wandelt sie in normalen Text um.
    Das ist nötig, weil PDFs oft keine einfachen Textdateien sind — besonders bei eingescannten Büchern.
 
-2. **Fingerabdruck erstellen** — Für jeden Textabschnitt (~500 Wörter) wird ein sogenannter *Fingerabdruck* berechnet.
+2. **Bedeutungsmuster erstellen** — Für jeden Textabschnitt (~500 Wörter) wird ein sogenannter *Bedeutungsmuster* berechnet.
    Das ist eine Liste von 1024 Zahlen, die beschreiben, worum es in diesem Abschnitt geht.
    Ähnliche Themen bekommen ähnliche Fingerabdrücke — das ist die Magie dahinter.
 
-3. **Speichern** — Text + Fingerabdruck + Seitenzahl werden in der Datenbank abgelegt.
+3. **Speichern** — Text + Bedeutungsmuster + Seitenzahl werden in der Datenbank abgelegt.
 
 **Wie oft?** Nur einmal pro Buch. Danach ist alles gespeichert und das Buch muss nie wieder verarbeitet werden.
 
@@ -1031,9 +1031,9 @@ so musst du nicht jedes Mal den genauen Thementitel eintippen.
 
 **Was das System macht — Schritt für Schritt:**
 
-1. **Dein Thema bekommt auch einen Fingerabdruck** — genau wie die Buchseiten.
+1. **Dein Thema bekommt auch einen Bedeutungsmuster** — genau wie die Buchseiten.
 
-2. **Vergleich** — Das System vergleicht den Fingerabdruck deines Themas mit den Fingerabdrücken
+2. **Vergleich** — Das System vergleicht den Bedeutungsmuster deines Themas mit den Fingerabdrücken
    aller gespeicherten Buchseiten. Je ähnlicher die Fingerabdrücke, desto relevanter die Seite.
 
 3. **Top 10** — Die 10 ähnlichsten Abschnitte werden ausgewählt. Das sind die Fundstellen.
@@ -1062,10 +1062,10 @@ am Ende haben möchte. Mit seinen eigenen Kapiteln (Content 1, Content 2 usw.), 
 1. **Text lesen** — Bei .docx-Dateien wird der Text direkt ausgelesen.
    Bei PDFs läuft OCR (wie bei den Büchern).
 
-2. **Fingerabdruck** — Auch das Beispieldokument bekommt einen Fingerabdruck.
+2. **Bedeutungsmuster** — Auch das Beispieldokument bekommt einen Bedeutungsmuster.
    Das System versteht also: *„Dieses Beispiel handelt von Lyrischen Texten."*
 
-3. **Gespeichert** — Text + Fingerabdruck werden in einer eigenen Tabelle (`examples`) abgelegt.
+3. **Gespeichert** — Text + Bedeutungsmuster werden in einer eigenen Tabelle (`examples`) abgelegt.
 
 **Was passiert beim nächsten Abfragen?**
 
