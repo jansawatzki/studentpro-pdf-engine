@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-16] Plain-language explainers in UI
+
+### Changed
+- `app_Claude.py` Tab "Wie funktioniert es?": komplett neu geschrieben — 5 aufklappbare Abschnitte (Bücher, Lehrplan, Abfragen, Beispieldokumente, Kosten/Ziel), kein Fachjargon, Fingerabdruck-Analogie, Kostentabelle, Abnahmekriterium
+- `app_Claude.py` Tab "Beispiele hochladen": neuer aufklappbarer Abschnitt "Was passiert, wenn ich eine Datei hochlade?" — erklärt Text-Extraktion, Fingerabdruck-Berechnung, Speicherung, was beim Abfragen passiert, und beantwortet explizit "Ändert sich der System-Prompt?" (Antwort: Nein)
+
+---
+
 ## [2026-03-15] Multi-file upload + deployment doc
 
 ### Changed
