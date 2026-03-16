@@ -691,19 +691,19 @@ with tab_beispiele:
 Bei einer `.docx`-Datei liest das System den Text direkt aus der Datei.
 Bei einer `.pdf`-Datei schickt es die Datei an Mistral OCR, das die Seiten wie ein Scanner in Text umwandelt.
 
-**Schritt 2 — Bedeutungsmuster berechnen**
-Mistral Embed berechnet einen „Bedeutungsmuster" des Textes — eine Liste von 1024 Zahlen,
+**Schritt 2 — Steckbrief berechnen**
+Mistral Embed berechnet einen „Steckbrief" des Textes — eine Liste von 1024 Zahlen,
 die beschreiben, worum es in dem Dokument geht. Ähnliche Themen → ähnliche Zahlen.
 
 **Schritt 3 — Speichern**
-Text + Bedeutungsmuster werden in der Datenbank abgelegt (Tabelle `examples`).
+Text + Steckbrief werden in der Datenbank abgelegt (Tabelle `examples`).
 
 ---
 
 **Was passiert beim Abfragen?**
 
-Wenn du ein Thema abfragst (z.B. *„Lyrische Texte"*), berechnet das System auch für dieses Thema einen Bedeutungsmuster.
-Es vergleicht ihn dann mit den Fingerabdrücken aller hochgeladenen Beispieldokumente.
+Wenn du ein Thema abfragst (z.B. *„Lyrische Texte"*), berechnet das System auch für dieses Thema einen Steckbrief.
+Es vergleicht ihn dann mit den Steckbriefen aller hochgeladenen Beispieldokumente.
 
 Wenn ein Beispiel gut passt (Ähnlichkeit ≥ 50 %), wird es Mistral mitgeschickt:
 *„Hier ist ein Beispiel, wie das Ergebnis aussehen soll — orientiere dich an Aufbau und Stil."*
@@ -993,16 +993,16 @@ und schreibt daraus automatisch eine Zusammenfassung.
 1. **Lesen** — Die KI (Mistral OCR) liest jede einzelne Seite des PDFs und wandelt sie in normalen Text um.
    Das ist nötig, weil PDFs oft keine einfachen Textdateien sind — besonders bei eingescannten Büchern.
 
-2. **Bedeutungsmuster erstellen** — Für jeden Textabschnitt (~500 Wörter) wird ein sogenannter *Bedeutungsmuster* berechnet.
+2. **Steckbrief erstellen** — Für jeden Textabschnitt (~500 Wörter) wird ein sogenannter *Steckbrief* berechnet.
    Das ist eine Liste von 1024 Zahlen, die beschreiben, worum es in diesem Abschnitt geht.
-   Ähnliche Themen bekommen ähnliche Fingerabdrücke — das ist die Magie dahinter.
+   Ähnliche Themen bekommen ähnliche Steckbriefe — das ist die Magie dahinter.
 
-3. **Speichern** — Text + Bedeutungsmuster + Seitenzahl werden in der Datenbank abgelegt.
+3. **Speichern** — Text + Steckbrief + Seitenzahl werden in der Datenbank abgelegt.
 
 **Wie oft?** Nur einmal pro Buch. Danach ist alles gespeichert und das Buch muss nie wieder verarbeitet werden.
 
 **Was kostet das?** Rund **0,20 € pro 100 Seiten** — also etwa 0,60 € für ein typisches 300-Seiten-Buch.
-Das Lesen (OCR) macht fast den ganzen Betrag aus, die Fingerabdrücke sind winzig.
+Das Lesen (OCR) macht fast den ganzen Betrag aus, die Steckbriefe sind winzig.
         """)
 
     with st.expander("📄 Schritt 2 — Lehrplan hochladen (einmalig)"):
@@ -1031,10 +1031,10 @@ so musst du nicht jedes Mal den genauen Thementitel eintippen.
 
 **Was das System macht — Schritt für Schritt:**
 
-1. **Dein Thema bekommt auch einen Bedeutungsmuster** — genau wie die Buchseiten.
+1. **Dein Thema bekommt auch einen Steckbrief** — genau wie die Buchseiten.
 
-2. **Vergleich** — Das System vergleicht den Bedeutungsmuster deines Themas mit den Fingerabdrücken
-   aller gespeicherten Buchseiten. Je ähnlicher die Fingerabdrücke, desto relevanter die Seite.
+2. **Vergleich** — Das System vergleicht den Steckbrief deines Themas mit den Steckbriefen
+   aller gespeicherten Buchseiten. Je ähnlicher die Steckbriefe, desto relevanter die Seite.
 
 3. **Top 10** — Die 10 ähnlichsten Abschnitte werden ausgewählt. Das sind die Fundstellen.
 
@@ -1062,10 +1062,10 @@ am Ende haben möchte. Mit seinen eigenen Kapiteln (Content 1, Content 2 usw.), 
 1. **Text lesen** — Bei .docx-Dateien wird der Text direkt ausgelesen.
    Bei PDFs läuft OCR (wie bei den Büchern).
 
-2. **Bedeutungsmuster** — Auch das Beispieldokument bekommt einen Bedeutungsmuster.
+2. **Steckbrief** — Auch das Beispieldokument bekommt einen Steckbrief.
    Das System versteht also: *„Dieses Beispiel handelt von Lyrischen Texten."*
 
-3. **Gespeichert** — Text + Bedeutungsmuster werden in einer eigenen Tabelle (`examples`) abgelegt.
+3. **Gespeichert** — Text + Steckbrief werden in einer eigenen Tabelle (`examples`) abgelegt.
 
 **Was passiert beim nächsten Abfragen?**
 
@@ -1142,7 +1142,7 @@ Hier die realen Zahlen — gemessen an echten Verarbeitungen in diesem System:
 **Was steckt hinter den Zahlen?**
 
 - **OCR (Lesen)** kostet ca. 0,18 Cent pro Seite — das ist der größte Posten beim Indexieren
-- **Fingerabdrücke (Embedding)** kosten fast nichts — ~0,003 € pro Buch
+- **Steckbriefe (Embedding)** kosten fast nichts — ~0,003 € pro Buch
 - **Zusammenfassung (Mistral Large)** kostet ~0,01–0,02 € pro frischer Abfrage
   (= 10 Buchseiten als Kontext + System-Prompt + generierter Text)
 
@@ -1198,7 +1198,7 @@ Alle drei Testthemen landen sofort auf Platz 1. Der formale Abnahmetest (Top-10,
 | Komponente | Technologie | Warum |
 |---|---|---|
 | **PDF lesen (OCR)** | Mistral OCR `mistral-ocr-latest` | Erkennt auch eingescannte Seiten zuverlässig |
-| **Fingerabdrücke** | Mistral Embed `mistral-embed` (1024 Zahlen) | EU-gehostet, DSGVO-konform, günstig |
+| **Steckbriefe** | Mistral Embed `mistral-embed` (1024 Zahlen) | EU-gehostet, DSGVO-konform, günstig — alles bei einem Anbieter |
 | **Datenbank** | Supabase + pgvector | Philipp hat volle Kontrolle, skaliert gut |
 | **KI-Zusammenfassung** | Mistral Large `mistral-large-latest` | Stark, EU-gehostet |
 | **Oberfläche** | Streamlit | Schnell zu bauen, reicht für internes Tool |
