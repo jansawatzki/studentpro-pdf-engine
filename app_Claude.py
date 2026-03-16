@@ -346,9 +346,9 @@ def load_lehrplan_from_cache(filename: str):
 st.set_page_config(page_title="student PRO — PDF Engine", layout="wide")
 st.title("student PRO — PDF Knowledge Engine")
 
-tab1, tab_lehrplan, tab_beispiele, tab2, tab3, tab4 = st.tabs([
+tab1, tab_lehrplan, tab_beispiele, tab2, tab4 = st.tabs([
     "📚 Bücher hochladen", "📄 Lehrplan hochladen", "📝 Beispiele hochladen",
-    "🔍 Thema abfragen", "📋 Projektübersicht", "❓ Wie funktioniert es?"
+    "🔍 Thema abfragen", "❓ Wie funktioniert es?"
 ])
 
 # ── Tab 1: Upload ──────────────────────────────────────────────────────────────
@@ -917,107 +917,6 @@ with tab2:
                 st.error(f"Fehler bei der Suche: {e}")
                 raise
 
-# ── Tab 3: Project Summary ─────────────────────────────────────────────────────
-with tab3:
-    st.header("Projektübersicht")
-
-    st.markdown("""
-## Was wurde gebaut?
-
-Eine vollständige **PDF-Retrieval-Engine** für student PRO — das Bildungsplattform-Projekt von Philipp Nitsche (NRW-Lehrplaninhalte für Lehrer).
-
-Das System extrahiert automatisch relevante Inhalte aus großen Schulbuch-PDFs und erstellt strukturierte Zusammenfassungen pro Lehrplan-Thema — damit Philipp seine Lehrer-App mit geprüften Inhalten befüllen kann.
-
----
-
-## Technischer Stack
-
-| Komponente | Technologie | Zweck |
-|---|---|---|
-| **OCR / PDF-Extraktion** | Mistral OCR (`mistral-ocr-latest`) | Text aus Schulbuch- und Lehrplan-PDFs extrahieren |
-| **Embeddings** | Mistral Embed (`mistral-embed`, 1024-dim) | Seiten semantisch einbetten |
-| **Vektordatenbank** | Supabase pgvector | Vektoren + Metadaten speichern & suchen |
-| **LLM Zusammenfassung & Extraktion** | Mistral Large (`mistral-large-latest`) | Zusammenfassungen + Lehrplan-Themen-Extraktion |
-| **Frontend** | Streamlit | Bedienoberfläche |
-| **Hosting** | Streamlit Cloud | Öffentlich erreichbar, Auto-Deployment via GitHub |
-
----
-
-## Was funktioniert heute (Stand: 08.03.2026)
-
-**✅ Bücher indexieren** (Tab 1)
-- Große PDFs automatisch in 25-Seiten-Batches aufgeteilt (Mistral-Limit: 50 MB)
-- OCR → Embedding → Supabase — vollautomatisch, mit Fach-Tagging
-- Cache: bereits indexierte Bücher werden übersprungen
-- Indexiert: *Klett „Deutsch kompetent EF"* (109 S.) + *Paul D Oberstufe Gesamtband* (315 S.)
-
-**✅ Lehrplan verarbeiten** (Tab 2)
-- Lehrplan-PDF hochladen → Mistral erkennt Fach + EF/GK/LK automatisch
-- Themen zur Überprüfung mit Checkboxen — vor dem Speichern prüfbar
-- Qualitätsmetrik: wie viele von Philipps Excel-Themen hat Mistral gefunden? (Keyword-Matching)
-- Cache: bereits verarbeitete PDFs werden aus DB geladen, kein zweiter Mistral-Aufruf
-- Verarbeitet: Kernlehrplan Deutsch NRW + Kernlehrplan Mathematik NRW
-
-**✅ Thema abfragen** (Tab 3)
-- Dropdown mit allen gespeicherten Themen (Format: `[Fach · EF/GK/LK]`)
-- Pinned-Themen (★ rot, Philipps Excel-Auswahl) erscheinen oben
-- Fachbasierte Suche: Deutsch-Themen durchsuchen nur Deutsch-Bücher
-- Buchauswahl per Checkbox möglich (alle vorgewählt)
-- Zusammenfassung mit Seitenverweisen und aufklappbaren Quellseiten
-- Cache: Folgeabfragen kosten €0
-
-**✅ Zwei editierbare System-Prompts**
-- Extraktions-Prompt (Lehrplan-Tab) — steuert wie Mistral Themen aus dem Lehrplan liest
-- Zusammenfassungs-Prompt (Abfrage-Tab) — steuert den Lehrer-Kontext für Zusammenfassungen
-- Beide in Supabase gespeichert, bleiben bei App-Neustarts erhalten
-
-**✅ Themenübersicht mit Farbmarkierung**
-- ★ Rot — von Philipp in der Excel markiert
-- ✓ Grün — im Kernlehrplan gefunden UND in Philipps Excel
-- Ohne Markierung — nur im Kernlehrplan
-
----
-
-## Datenbank-Stand
-
-| Tabelle | Inhalt |
-|---|---|
-| `documents` | 424 Seiten (109 Klett + 315 Paul D), alle Fach: Deutsch |
-| `topics` | 93 Excel-Themen (Deutsch + Mathe, EF/GK/LK) + Lehrplan-Themen Deutsch |
-| `summary_cache` | Gecachte Zusammenfassungen (wächst mit jeder Abfrage) |
-| `settings` | 2 System-Prompts (Extraktion + Zusammenfassung) |
-
----
-
-## Erste Testergebnisse
-
-| Thema | Top-Treffer | Ähnlichkeit |
-|---|---|---|
-| Sprachvarietäten und ihre gesellschaftliche Bedeutung | Seite 100 — Lexikon Sprache | 88% |
-| Lyrische Texte: Inhalt, Aufbau, sprachliche Gestaltung | Seite 94 — Gattungslexikon Lyrik | 88% |
-| Kommunikationsrollen: Kommunikationsmodelle | Seite 6 — Kommunikationsmodelle | 88% |
-
-Alle drei Testthemen liefern direkte Treffer auf Position 1. Formaler Abnahmetest (Top-10, ≥ 8/10) ausstehend.
-
----
-
-## Vereinbartes Abnahmekriterium
-
-> Top-10 Retrieval-Ergebnisse für ein Lehrplan-Thema,
-> **≥ 8 von 10 Treffern relevant** (binäre Bewertung),
-> stabil über mindestens 5 verschiedene Themen.
-
----
-
-## Kosten (Schätzung)
-
-| Posten | Einmalig | Monatlich |
-|---|---|---|
-| OCR (gesamtes Korpus ~9.000 Seiten) | ~€18 | — |
-| Embeddings (Vollkorpus) | ~€2 | — |
-| Zusammenfassungen (103 Themen, dann gecacht) | ~€10 | ~€0 |
-| **Gesamt** | **~€30** | **~€0–5** |
-""")
 
 
 # ── Tab 4: How it works ────────────────────────────────────────────────────────
@@ -1169,4 +1068,45 @@ Das vertraglich vereinbarte Ziel:
 
 Sobald das erreicht ist, gilt das System als abgenommen. ✅
     """)
+
+    st.markdown("---")
+
+    with st.expander("📊 Was ist gerade in der Datenbank?"):
+        st.markdown("""
+Das ist der aktuelle Stand — was das System schon kennt und durchsuchen kann.
+
+| Tabelle | Was drin ist |
+|---|---|
+| **Bücher** (`documents`) | 424 Seiten — Klett *Deutsch kompetent EF* (109 S.) + Paul D *Oberstufe Gesamtband* (315 S.), alle Fach: Deutsch |
+| **Themen** (`topics`) | 93 Themen aus Philipps Excel (Deutsch + Mathe, EF/GK/LK) + extrahierte Kernlehrplan-Themen |
+| **Zusammenfassungs-Cache** (`summary_cache`) | Wächst mit jeder Abfrage — Wiederholungen kosten €0 |
+| **Einstellungen** (`settings`) | 2 System-Prompts (Extraktion + Zusammenfassung), editierbar in der App |
+| **Beispiele** (`examples`) | Philipps Beispieldokumente als Stilvorlagen |
+
+**Erste Testergebnisse (vom 05.03.2026):**
+
+| Thema | Bester Treffer | Ähnlichkeit |
+|---|---|---|
+| Sprachvarietäten | Seite 100 — Lexikon Sprache | 88% |
+| Lyrische Texte | Seite 94 — Gattungslexikon Lyrik | 88% |
+| Kommunikationsmodelle | Seite 6 — Kommunikationsmodelle | 88% |
+
+Alle drei Testthemen landen sofort auf Platz 1. Der formale Abnahmetest (Top-10, ≥ 8/10) steht noch aus.
+        """)
+
+    with st.expander("🔧 Technischer Stack (für Rachid)"):
+        st.markdown("""
+| Komponente | Technologie | Warum |
+|---|---|---|
+| **PDF lesen (OCR)** | Mistral OCR `mistral-ocr-latest` | Erkennt auch eingescannte Seiten zuverlässig |
+| **Fingerabdrücke** | Mistral Embed `mistral-embed` (1024 Zahlen) | EU-gehostet, DSGVO-konform, günstig |
+| **Datenbank** | Supabase + pgvector | Philipp hat volle Kontrolle, skaliert gut |
+| **KI-Zusammenfassung** | Mistral Large `mistral-large-latest` | Stark, EU-gehostet |
+| **Oberfläche** | Streamlit | Schnell zu bauen, reicht für internes Tool |
+| **Hosting** | Streamlit Cloud | Auto-Deploy bei jedem GitHub-Push |
+| **Code** | GitHub `jansawatzki/studentpro-pdf-engine` | Public repo, Rachid hat Zugriff |
+
+**Daten-Fluss in einem Satz:**
+PDF → OCR (Text) → Embed (Zahlen) → Supabase (speichern) → bei Abfrage: Thema embedden → nächste Nachbarn suchen → Mistral Large zusammenfassen → Cache
+        """)
 
