@@ -1,380 +1,354 @@
 # App Flow — student PRO PDF Retrieval Engine
 
-**Version:** 1.1 | **Created:** 2026-03-04 | **Last updated:** 2026-03-08 | **Owner:** Jan
+**Version:** 2.0 | **Created:** 2026-03-04 | **Last updated:** 2026-03-16 | **Owner:** Jan
 
 ---
 
-## 0. Current Flows (as of 2026-03-08) — LIVE
-
-### Tab structure (5 tabs)
+## 0. Current Tab Structure (as of 2026-03-16 — LIVE)
 
 ```
-📚 Bücher hochladen | 📄 Lehrplan hochladen | 🔍 Thema abfragen | 📋 Projektübersicht | ❓ Wie funktioniert es?
-```
-
-### Journey A — Buch indexieren
-```
-Tab „Bücher hochladen"
-→ PDF hochladen
-→ Cache-Check: bereits indexiert? → Hinweis + Skip
-→ „Buch verarbeiten" → OCR → Embed → Supabase upsert
-→ Bücherliste unten aktualisiert
-```
-
-### Journey B — Lehrplan verarbeiten
-```
-Tab „Lehrplan hochladen"
-→ ⚙️ Extraktions-Prompt optional anpassen + speichern
-→ PDF hochladen
-→ Cache-Check: source_file bereits in topics?
-  → JA: 💾 Aus Cache geladen — Themen direkt aus DB
-  → NEIN: „Themen extrahieren" → OCR → Mistral Large → parse EF/GK/LK
-→ Qualitätsmetriken: Extrahierte Themen / Philipps Excel / Übereinstimmungen (fachgefiltert)
-→ Matching-Themen in Checkbox-Liste mit ✓ markiert
-→ „Ausgewählte Themen speichern" → upsert in topics (pinned-Schutz)
-→ Lehrplan-PDF-Liste + Themenübersicht aktualisiert
-```
-
-### Journey C — Thema abfragen (täglich)
-```
-Tab „Thema abfragen"
-→ Bücher per Checkbox auswählen (nach Fach gruppiert, alle vorgewählt)
-→ Thema auswählen (Dropdown: pinned ★ oben, Format [Fach · EF/GK/LK])
-→ Cache-Check: topic bereits in summary_cache?
-  → JA: 💾 Ergebnis direkt anzeigen
-  → NEIN: „Relevante Inhalte abrufen"
-      → Embed topic → match_documents RPC (subject + filename filter)
-      → Mistral Large summary (Prompt aus Supabase settings)
-      → Ergebnis cachen + anzeigen
-→ ⚙️ Zusammenfassungs-Prompt optional anpassen + speichern
-→ 🔄 Neu generieren → Cache-Bypass
+📚 Bücher hochladen  |  📄 Lehrplan hochladen  |  📝 Beispiele hochladen  |  🔍 Thema abfragen  |  ❓ Wie funktioniert es?
 ```
 
 ---
 
-## 1. User & Context
+## 1. The Two-Phase Concept — sachliche Wiedergabe vs. stilisierter Text
 
-**Single user: Philipp Nitsche**
-Uses the tool in isolated sessions. Each session targets one topic at a time. No concurrent users, no authentication.
+This is the most important thing to understand about how the system works.
 
-**Typical session pattern:**
-1. One-time setup: upload all books for a subject (done once per subject)
-2. Daily work: query topics one by one → review → export → upload to admin panel
+Philipp's goal:
+> „Es ist mein Ziel, dass sie sich nach der rein sachlichen Wiedergabe mithilfe von KI,
+> die endgültigen Texte als Upload in einer weiteren Phase an diesen Beispielen orientieren."
 
----
-
-## 2. Primary User Journeys
-
-### Journey A — First use (new subject)
-```
-Open app → Tab 1 (Bücher verwalten) → Upload 3–6 books for subject
-→ Wait for indexing to complete → Tab 2 (Thema abfragen) → First query
-```
-
-### Journey B — Daily content production
-```
-Open app → Tab 2 → Select topic → Run query → Review Top-10
-→ Tab 3 → Rate chunks → Tab 2/4 → Generate summary → Edit → Export
-```
-
-### Journey C — Quality check session
-```
-Open app → Tab 3 → Select previously queried topic → Rate all 10 chunks
-→ Review precision score → If < 8/10: note topic for developer follow-up
-```
+The system already has these two phases built in — they just need to be understood clearly.
 
 ---
 
-## 3. Screen-by-Screen Flow
+### Phase 1 — Sachliche Wiedergabe (was das System heute liefert)
+
+**What it is:** The raw, unmodified text from the schoolbooks — exactly what Mistral OCR read off the pages.
+
+**Where it lives in the UI:** The **„📚 Quellseiten"** expander in Tab „Thema abfragen". Each entry shows:
+- Book title + page number
+- Relevance score (how well this page matches the topic)
+- The original text from that page (first 800 characters)
+
+**How it's produced:**
+```
+Topic keyword
+  → embed (1024-dimensional fingerprint)
+  → compare against all stored page fingerprints
+  → return Top-N most similar chunks
+  → display raw text as-is
+```
+
+No AI rewriting happens here. This IS the sachliche Wiedergabe — the factual content as it appears in the source.
 
 ---
 
-### Screen 1 — Tab 1: Bücher verwalten (Book Management)
+### Phase 2 — KI-Stilisierung (was Mistral Large daraus macht)
 
-**Entry:** App launch (default tab)
+**What it is:** Mistral Large reads the Top-10 chunks and writes a structured summary in the teacher-facing style.
 
-**State: No books indexed**
+**Where it lives in the UI:** The **„📝 Zusammenfassung"** expander in Tab „Thema abfragen".
+
+**How it's produced:**
 ```
-[Empty state]
-"Noch keine Bücher indexiert. Laden Sie das erste Buch hoch."
-[PDF hochladen ↓]
-```
-
-**State: Upload form visible**
-```
-Inputs:
-  - File uploader (PDF, max 200 MB)
-  - Text input: Buchtitel (required)
-  - Select: Fach (Deutsch / Biologie / Sozialwissenschaften) (required)
-
-Button: [Buch verarbeiten]
+Top-10 chunks (raw text)
+  + System-Prompt (Anweisung: NRW-Kontext, du-Form, Emojis, Content-Struktur)
+  + [optional] Beispieldokument als Stilvorlage
+  → Mistral Large generates the summary
+  → displayed + cached
 ```
 
-**State: Processing**
-```
-Spinner: "Hochladen zu Mistral OCR..."
-Spinner: "OCR läuft... (kann 1–2 Minuten dauern)"
-Info: "OCR abgeschlossen — 498 Seiten erkannt."
-Progress bar: "Seite 47 von 498 wird verarbeitet..."
-```
-
-**State: Done**
-```
-Success: "Verarbeitung abgeschlossen — 498 Seiten in 1.204 Chunks indexiert."
-Form resets to empty.
-```
-
-**State: Books listed**
-```
-Table: Buch | Fach | Seiten | Chunks | Hochgeladen am
-[Delete button per row — shows confirmation dialog]
-```
-
-**Transitions:**
-- Upload complete → stay on Tab 1, show success + updated table
-- Click Tab 2 → go to query screen
+This is where the AI transforms the sachliche Wiedergabe into structured teacher content.
 
 ---
 
-### Screen 2 — Tab 2: Thema abfragen (Topic Query)
+### Can these two phases be separated?
 
-**Entry:** User clicks Tab 2
+**They already are — technically.** The Quellseiten and the Zusammenfassung are two separate things in the UI today.
 
-**State: No query yet**
+**What's currently NOT separated:** The button „Relevante Inhalte abrufen" triggers both phases in one click — it retrieves the chunks AND immediately generates the summary.
+
+**A future split could look like this:**
+
 ```
-Filters:
-  - Select: Fach (Deutsch / Biologie / Sozialwissenschaften)
-  - Select: Thema (filtered by Fach, grouped by Jahrgangsstufe)
-    e.g. "Lyrik – Oberstufe", "Epik – Klasse 10"
+Button: [Sachliche Wiedergabe abrufen]   ← Phase 1 only
+   → shows Quellseiten (raw book text)
+   → no LLM call yet, costs ~€0.00
 
-Button: [Relevante Inhalte abrufen]
-```
-
-**State: Loading**
-```
-Spinner: "Suchanfrage wird erweitert..."
-Spinner: "Semantische Suche läuft..."
-Spinner: "Ergebnisse werden sortiert..."
+Button: [Zusammenfassung erstellen]      ← Phase 2 only
+   → takes the retrieved chunks
+   → calls Mistral Large with system prompt + example
+   → costs ~€0.01–0.02
 ```
 
-**State: Results displayed**
-```
-Header: "Top-10 Treffer für: Lyrik – Oberstufe"
+This would let Philipp (or a teacher) review the raw source material before committing to an LLM generation. It also makes the cost split explicit — you only pay for Phase 2 when you actually want the styled output.
 
-For each of 10 results:
-  ┌────────────────────────────────────────────────┐
-  │ #1  Deutschbuch Klasse 10 — Seite 47  [97%]   │
-  │ ▼ (expandable)                                  │
-  │   "Das Sonett ist eine lyrische Gedichtform..." │
-  └────────────────────────────────────────────────┘
-
-Button: [Zusammenfassung erstellen]
-```
-
-**State: Summary generated**
-```
-Section: "Zusammenfassung"
-[Editable text area with LLM-generated German summary]
-
-Note: "Generiert aus 10 Quellseiten. Letzte Aktualisierung: 04.03.2026 14:32"
-```
-
-**Transitions:**
-- "Relevante Inhalte abrufen" → loading → results
-- "Zusammenfassung erstellen" → loading → summary below results
-- Tab 3 → quality rating screen (pre-loaded with current topic's results)
-- Tab 4 → export screen (pre-loaded with current summary)
+**Recommendation:** Build this two-button split in Phase 1 of the roadmap. It aligns exactly with Philipp's workflow vision and makes the factual vs. styled distinction transparent.
 
 ---
 
-### Screen 3 — Tab 3: Qualität prüfen (Quality Rating)
+### The role of Beispieldokumente (Phase 2 quality control)
 
-**Entry:** User clicks Tab 3 (topic carries over from Tab 2 if active)
+Philipp's example documents (Tab „Beispiele hochladen") are the bridge between the two phases.
 
-**State: Topic selected, no ratings yet**
 ```
-Header: "Qualitätsprüfung: Lyrik – Oberstufe"
-Subheader: "Bitte bewerten Sie jeden Treffer."
-
-Precision counter: "0 von 10 bewertet"
-
-For each of 10 results:
-  ┌────────────────────────────────────────────────┐
-  │ #1  Deutschbuch Klasse 10 — Seite 47           │
-  │ "Das Sonett ist eine lyrische Gedichtform..."  │
-  │ [✓ Relevant]  [✗ Nicht relevant]               │
-  └────────────────────────────────────────────────┘
+Beispieldokument = Philipps eigener, fertig geschriebener Text zu einem Thema
+                   (das Ziel-Format für die Zusammenfassung)
 ```
 
-**State: Partially rated**
+When a summary is generated, the system:
+1. Finds the Beispieldokument most similar to the current topic
+2. If similarity ≥ 50%, injects it into the Mistral Large prompt:
+   _„Orientiere dich am Aufbau und Stil dieses Beispiels"_
+
+The Beispieldokument does NOT change the System-Prompt. It is appended to the user message alongside the source chunks.
+
+**Mistral Large sees three things at once:**
 ```
-Precision counter: "6 von 10 bewertet — noch 4 ausstehend"
-Rated chunks show their label (green ✓ or red ✗)
-```
-
-**State: All rated — threshold met**
-```
-Success badge: "8 von 10 relevant ✓  (80% — Abnahmekriterium erfüllt)"
-```
-
-**State: All rated — threshold NOT met**
-```
-Warning badge: "5 von 10 relevant ⚠️  (50% — Abnahmekriterium nicht erreicht)"
-Caption: "Bitte kontaktieren Sie Jan für eine Anpassung."
-```
-
-**Transitions:**
-- Rating a chunk → updates precision counter live (no page reload)
-- All 10 rated + threshold met → green banner
-- All 10 rated + threshold not met → orange banner with developer note
-
----
-
-### Screen 4 — Tab 4: Exportieren (Export)
-
-**Entry:** User clicks Tab 4
-
-**State: Summary available**
-```
-Header: "Export: Lyrik – Oberstufe"
-
-Label: "Zusammenfassung (bearbeitbar vor Export):"
-[Text area — pre-filled with generated summary, editable]
-
-Section: "Quellen (10 Seiten)"
-Compact list: Deutschbuch Kl. 10 — S. 47, S. 88, S. 112 | Lesebuch — S. 203, S. 218
-
-[📄 Als JSON exportieren ↓]   [📊 Als CSV exportieren ↓]
-```
-
-**State: No summary yet**
-```
-Info: "Für dieses Thema wurde noch keine Zusammenfassung erstellt."
-Button: [Zur Abfrage → Tab 2]
-```
-
-**State: Export complete**
-```
-Success: "Datei wurde heruntergeladen: lyrik_oberstufe_2026-03-04.json"
+[System-Prompt]  → general instructions (NRW, du-Form, structure)
+[User message]   → Topic: Lyrische Texte
+                   Relevant chunks: [10 book pages]
+                   Style reference: [Philipps example document]
 ```
 
 ---
 
-## 4. Navigation Map
-
-```
-                    ┌─────────────────┐
-                    │  App launches   │
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-              ┌────►│   Tab 1         │◄────┐
-              │     │ Bücher verwalten│     │
-              │     └─────────────────┘     │
-              │                             │
-              │     ┌─────────────────┐     │
-              ├────►│   Tab 2         │─────┤
-              │     │ Thema abfragen  │     │
-              │     └────────┬────────┘     │
-              │              │ results      │
-              │     ┌────────▼────────┐     │
-              ├────►│   Tab 3         │─────┤
-              │     │ Qualität prüfen │     │
-              │     └────────┬────────┘     │
-              │              │ rated        │
-              │     ┌────────▼────────┐     │
-              └────►│   Tab 4         │─────┘
-                    │ Exportieren     │
-                    └─────────────────┘
-```
-
-State flows left-to-right in normal use, but tabs can be accessed in any order.
+## 2. Tab-by-Tab Flow
 
 ---
 
-## 5. State Management
+### Tab 1 — 📚 Bücher hochladen
 
-Streamlit `st.session_state` holds:
+**Purpose:** Index schoolbooks (one-time per book).
 
-```python
-st.session_state = {
-    "current_topic_id": str | None,       # selected topic UUID
-    "current_topic_name": str | None,     # display name
-    "current_results": list[dict] | None, # top-10 chunks from last query
-    "current_summary": str | None,        # LLM-generated summary
-    "ratings": dict[str, bool],           # chunk_id → relevant (True/False)
-    "last_exported_topic": str | None,    # for success messages
-}
+```
+Upload PDF
+  → Cache check: filename already in documents table?
+      YES → "bereits indexiert" banner + skip option
+      NO  → [Buch verarbeiten] button
+
+Processing:
+  → Upload to Mistral Files API
+  → OCR (mistral-ocr-latest) → list of pages with markdown text
+  → Log OCR cost to processing_log (pages × $0.002)
+  → For each page:
+      → chunk_text() → overlapping 1500-char chunks
+      → mistral.embeddings.create() → 1024-dim vector per chunk
+      → accumulate embed token count
+      → upsert into documents table (filename, page_number, chunk_index, content, embedding)
+  → Log embed cost to processing_log (tokens × $0.10/1M)
+  → Delete file from Mistral Files API
+  → Show success: "X Seiten → Y Abschnitte — 💰 $Z"
+
+Bottom: Indexed books list
+  → shows filename, page count, chunk count, total cost from processing_log
 ```
 
-Session state resets on page refresh. No persistent client-side state needed (all data lives in Supabase).
+**Key facts:**
+- Chunking: ~5 chunks per page, 1500 chars each, 200-char overlap
+- Each book is processed exactly once — cache prevents re-OCR
+- Subject is NOT manually entered — it's inferred from the Excel sheet mapping or set on the Lehrplan
 
 ---
 
-## 6. Edge Cases & Error States
+### Tab 2 — 📄 Lehrplan hochladen
 
-### Upload errors
+**Purpose:** Extract curriculum topics from NRW Lehrplan PDFs (one-time per Lehrplan).
 
-| Situation | UI Response |
-|---|---|
-| PDF is password-protected / DRM | `st.error("Diese PDF-Datei ist geschützt und kann nicht verarbeitet werden.")` |
-| PDF > 200 MB | `st.error("Datei zu groß. Maximale Dateigröße: 200 MB.")` (client-side, before upload) |
-| Mistral OCR API failure | `st.error("OCR-Verarbeitung fehlgeschlagen. Bitte erneut versuchen.")` + retry button |
-| OCR returns 0 pages | `st.warning("Keine lesbaren Seiten gefunden. Möglicherweise handelt es sich um eine gescannte PDF ohne OCR-Layer.")` |
-| Supabase write failure | `st.error("Datenbankfehler beim Speichern. Bitte Jan kontaktieren.")` |
+```
+[Optional] Edit extraction prompt (saved in Supabase settings table)
 
-### Query errors
+Upload PDF
+  → Cache check: source_file already in topics table?
+      YES → "💾 Aus Cache" banner + show cached topics
+           → [🔄 Neu extrahieren] to override
+      NO  → [Themen extrahieren] button
 
-| Situation | UI Response |
-|---|---|
-| No books indexed | `st.warning("Noch keine Bücher indexiert. Bitte zuerst ein Buch hochladen.")` |
-| Query returns 0 results | `st.warning("Keine Treffer gefunden. Das Thema wurde möglicherweise noch nicht behandelt.")` |
-| Query returns < 10 results | Show what was found + `st.info("Nur X Treffer gefunden.")` |
-| Mistral API rate limit | `st.error("API-Limit erreicht. Bitte 30 Sekunden warten und erneut versuchen.")` |
-| Network timeout | `st.error("Zeitüberschreitung. Bitte Internetverbindung prüfen und erneut versuchen.")` |
+Processing:
+  → OCR (mistral-ocr-latest) → full text
+  → mistral-large-latest with extraction prompt:
+      → auto-detect subject (Deutsch, Mathematik, ...)
+      → auto-detect course type (EF / GK / LK)
+      → extract concrete topic names
+  → Parse response: FACH: + === EF === / === GK === / === LK === sections
+  → Show extracted topics in review UI
 
-### Export errors
+Review UI:
+  → Quality metrics: X extracted / Y from Philipps Excel / Z Übereinstimmungen
+  → Matching topics highlighted ✓ (green)
+  → Pinned topics highlighted ★ (red — Philipps personal priority list)
+  → Checkbox per topic to include/exclude
 
-| Situation | UI Response |
-|---|---|
-| No summary generated | Redirect to Tab 2 with info message |
-| Export file generation fails | `st.error("Export fehlgeschlagen. Bitte erneut versuchen.")` |
+[Ausgewählte Themen speichern]
+  → upsert into topics table (subject, course_type, topic, source, source_file)
+  → pinned=true is protected — never overwritten by upsert
+
+Bottom: All topics grouped by subject → EF / GK / LK expanders
+```
 
 ---
 
-## 7. Happy Path (End-to-End)
+### Tab 3 — 📝 Beispiele hochladen
+
+**Purpose:** Upload Philipps hand-crafted example documents as style references for Phase 2.
 
 ```
-1. Philipp opens app → Tab 1 visible
+File uploader (docx or pdf, multiple files allowed)
+  → Skip check: filename already in examples table?
 
-2. He drags Deutschbuch_Klasse10.pdf into uploader
-   → enters "Deutschbuch Klasse 10" as title
-   → selects "Deutsch" as subject
-   → clicks "Buch verarbeiten"
+For each new file:
+  → .docx: extract_text_from_docx() [stdlib only, no python-docx]
+  → .pdf:  Mistral OCR → full text
+  → mistral.embeddings.create() → 1024-dim vector of full text
+  → Detect subject from filename (deutsch/mathe keywords)
+  → upsert into examples table (filename, topic_name, subject, content, embedding)
 
-3. Progress bar runs for ~2 minutes (498 pages)
-   → "Verarbeitung abgeschlossen — 498 Seiten in 1.204 Chunks indexiert."
-
-4. He clicks Tab 2
-   → selects "Deutsch" → selects "Lyrik – Oberstufe"
-   → clicks "Relevante Inhalte abrufen"
-
-5. 10 results appear in ~8 seconds (query expansion + hybrid search)
-   → He skims each excerpt, looks correct
-
-6. He clicks "Zusammenfassung erstellen"
-   → Summary appears in ~10 seconds, cites pages
-
-7. He clicks Tab 3
-   → Rates all 10 chunks → sees "8 von 10 relevant ✓"
-
-8. He clicks Tab 4
-   → Reviews summary, makes one small edit
-   → Clicks "Als JSON exportieren"
-   → File downloads: lyrik_oberstufe_2026-03-04.json
-
-9. He uploads JSON to student PRO admin panel
-   → Content live for teachers
+Bottom: List of stored examples with delete button
 ```
 
-Total time per topic (after books indexed): **~3–5 minutes**
+**How examples are used at query time (Tab 4):**
+```
+find_closest_example(query_embedding, subject=subject)
+  → match_examples RPC → cosine similarity against all examples
+  → if best match similarity ≥ 50%: inject as style reference
+  → if < 50%: no example used (summary still generated, just without style guide)
+```
+
+---
+
+### Tab 4 — 🔍 Thema abfragen
+
+**Purpose:** The daily-use tab. Select a topic, get source material + AI summary.
+
+```
+Book selector:
+  → checkboxes per book, grouped by subject, all pre-checked
+  → at least one book must be selected
+
+Topic selector:
+  → dropdown from topics table
+  → pinned topics (★) shown first
+  → format: "★ Lyrische Texte  [Deutsch · EF]"
+  → top_k slider: 3–20 results (default 10)
+
+[Optional] Edit system prompt (saved in Supabase settings table)
+
+Cache check: topic already in summary_cache?
+  YES → "💾 Aus Cache" banner
+      → 📝 Zusammenfassung expander (open)
+      → 📚 Quellseiten expander (closed)
+      → [🔄 Neu generieren] to bypass cache
+
+  NO  → [Relevante Inhalte abrufen] button
+
+On button click (PHASE 1 + PHASE 2 combined today):
+  PHASE 1 — Retrieval (sachliche Wiedergabe):
+    → embed topic keyword (mistral-embed)
+    → match_documents RPC (pgvector cosine similarity)
+        filters: subject_filter + filename_filter (selected books)
+    → return Top-N chunks (filename, page_number, chunk_index, content, similarity)
+
+  PHASE 2 — Generation (stilisierter Text):
+    → find_closest_example() → if similarity ≥ 50%: add as style block
+    → load system_prompt from Supabase settings
+    → mistral-large-latest:
+        system: [system_prompt]
+        user:   "Thema: {keyword}\n\nRelevante Auszüge:\n{chunks}\n\n{example_block}"
+    → cache result in summary_cache (topic, summary, sources, hits)
+
+Display:
+    → 📝 Zusammenfassung expander (open by default)
+        → caption: "📄 Stilvorlage: {example_filename} (Ähnlichkeit: X%)" if used
+        → st.markdown(summary_text)
+    → 📚 Quellseiten (N Treffer) expander (closed by default)
+        → nested expanders per chunk: filename, page, similarity, text preview
+```
+
+---
+
+### Tab 5 — ❓ Wie funktioniert es?
+
+**Purpose:** Plain-language explanation for Philipp and anyone new to the system.
+
+Contents (all in expanders except the intro):
+- 📚 Schritt 1 — Bücher hochladen
+- 📄 Schritt 2 — Lehrplan hochladen
+- 🔍 Schritt 3 — Thema abfragen
+- 📝 Schritt 4 — Beispieldokumente hochladen
+- 💰 Was kostet was? (expandable)
+- 🎯 Wann ist das System "fertig"?
+- 📊 Was ist gerade in der Datenbank?
+- 🔧 Technischer Stack
+
+---
+
+## 3. Data Model (current)
+
+| Table | What's in it | Key columns |
+|---|---|---|
+| `documents` | All book pages + chunks | filename, subject, page_number, chunk_index, content, embedding |
+| `topics` | Curriculum topics | subject, course_type, topic, source, source_file, pinned, in_lehrplan |
+| `examples` | Philipps style reference docs | filename, subject, topic_name, content, embedding |
+| `summary_cache` | Cached query results | topic, summary, sources (JSON), hits |
+| `settings` | Editable prompts | key (system_prompt / extraction_prompt), value |
+| `processing_log` | Per-operation cost log | filename, operation, pages, tokens_in, tokens_out, cost_usd |
+
+---
+
+## 4. Happy Path (current, end-to-end)
+
+```
+ONE-TIME SETUP (per subject):
+
+1. Tab 1 — Upload Klett_Deutsch.pdf
+   → 109 Seiten, ~2 min, costs $0.22
+   → 2126 Abschnitte indexiert
+
+2. Tab 2 — Upload NRW Kernlehrplan Deutsch.pdf
+   → Mistral erkennt: Fach Deutsch, EF + GK + LK
+   → Review + speichern → 93 Themen in DB
+
+3. Tab 3 — Upload Philipps Beispieldokument (Lyrische Texte.docx)
+   → Text extrahiert, Fingerabdruck gespeichert
+
+DAILY USE (per topic):
+
+4. Tab 4 — Thema auswählen: "Lyrische Texte [Deutsch · EF]"
+   → alle Bücher ausgewählt, top_k = 10
+   → [Relevante Inhalte abrufen]
+   → PHASE 1: Top-10 Buchseiten aus pgvector (88% similarity)
+   → PHASE 2: Mistral Large + Philipps Stilvorlage (89% Ähnlichkeit)
+   → 📝 Zusammenfassung: fertig in ~15 Sek
+   → 📚 Quellseiten: 10 Einträge, aufklappbar
+
+5. Philipp reviewed → Ergebnis passt → gecacht für alle Folgeabfragen
+```
+
+---
+
+## 5. What is NOT built yet (planned)
+
+| Feature | Phase | Notes |
+|---|---|---|
+| Two-button split: Phase 1 (retrieve) separate from Phase 2 (generate) | Phase 1 | Aligns with sachliche Wiedergabe concept |
+| Quality rating tab (✓/✗ per chunk, precision counter) | Phase 3 | Acceptance test prep |
+| Export tab (JSON/CSV download) | Phase 3 | Contractual requirement |
+| Hybrid search (BM25 + semantic) | Phase 2 | Biggest pending quality improvement |
+| Query expansion (synonyms via Mistral) | Phase 2 | ~1h dev, now unblocked on paid plan |
+| Re-ranking (second Mistral pass on Top-20) | Phase 2 | ~2h dev |
+| More books: Cornelsen, Westermann, Mathe | Phase 4+ | Philipp to supply PDFs |
+
+---
+
+## 6. Open Questions for Discussion
+
+1. **Two-button split** — Should Phase 1 (raw source material) and Phase 2 (summary) be triggered separately? This would make the sachliche Wiedergabe visible and reviewable before any LLM generation happens.
+
+2. **Editable sachliche Wiedergabe** — Should Philipp be able to edit/select which of the Top-10 chunks go into the summary prompt? (e.g. deselect 2 irrelevant ones before clicking "Zusammenfassung erstellen")
+
+3. **Teacher upload flow (Philipps Phase 2 vision)** — Teachers upload their own final text → it gets stored → future summaries use it as a style reference (same mechanism as Beispieldokumente today, but teacher-contributed). Is this the right read of his goal?
+
+4. **Acceptance test** — When does Philipp formally rate Top-10 for 5 topics?

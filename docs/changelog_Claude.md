@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-16] Rewrite app-flow_Claude.md to reflect current system
+
+### Changed
+- `docs/app-flow_Claude.md` komplett neu geschrieben (v1.1 → v2.0):
+  - Tab-Struktur auf aktuellen Stand gebracht (5 Tabs, korrekte Namen)
+  - Alle nicht gebauten Tabs (Qualität prüfen, Exportieren) entfernt
+  - Neues Kapitel 1: Zweiphasen-Konzept — sachliche Wiedergabe vs. stilisierter Text
+  - Erklärt wo Phase 1 (Retrieval) endet und Phase 2 (Mistral Large) beginnt
+  - Erklärt wie Beispieldokumente in Phase 2 eingreifen
+  - Tab-by-Tab Flow für alle 5 aktuellen Tabs
+  - Aktuelles Datenmodell (6 Tabellen inkl. processing_log)
+  - Happy Path auf aktuellen Stand
+  - Offene Fragen für Philipp-Diskussion (Two-button split, teacher upload flow)
+
+---
+
 ## [2026-03-16] Expandable results in Tab Thema abfragen
 
 ### Changed
