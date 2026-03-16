@@ -1,4 +1,28 @@
-# Mistral Usage — Wo finde ich meine Verbrauchsdaten?
+# Mistral Usage — Kosten, Free Tier & Datenschutz
+
+---
+
+## ⚠️ WICHTIG — Experiment Plan & Trainingsdaten
+
+**Das Konto läuft aktuell auf dem kostenlosen "Experiment Plan".**
+Alle bisherigen API-Aufrufe (OCR der Schulbücher, Embeddings, Zusammenfassungen) waren kostenlos.
+
+**Das Problem:** Mistral schreibt für den Experiment Plan ausdrücklich:
+> *"API requests made under the Experiment plan may be used to train Mistral's models."*
+
+Das bedeutet: der Inhalt der Schulbücher (Klett, Paul D Oberstufe, zukünftig Cornelsen/Westermann)
+könnte von Mistral für das Training eigener Modelle verwendet werden.
+
+**Warum das ein Problem ist:**
+- Die Bücher sind urheberrechtlich geschützt (Verlage: Klett, Cornelsen, Westermann)
+- Philipp hat die Zugänge über Verlagslizenzen — keine Weitergabe an Dritte erlaubt
+- Im Vertrag mit Philipp ist EU-Hosting und Datenkontrolle vereinbart
+
+**Was zu tun ist:** Auf den bezahlten **"Scale Plan"** upgraden.
+Dort werden Daten nicht für Training verwendet.
+Kosten: je nach Verbrauch — bei unserem Nutzungsmuster wahrscheinlich unter €10/Monat.
+
+→ Upgrade hier: **https://console.mistral.ai/billing**
 
 ---
 
