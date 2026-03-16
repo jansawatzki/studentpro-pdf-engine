@@ -1,6 +1,5 @@
 streamlit
-mistralai>=1.0.0
+mistralai==1.10.0
 supabase
 python-dotenv
 openpyxl
-pymupdf
