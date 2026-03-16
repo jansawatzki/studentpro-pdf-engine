@@ -1094,46 +1094,32 @@ und werden dauerhaft gespeichert.
 
     with st.expander("🎛️ Wie kann ich die Ergebnisse beeinflussen?"):
         st.markdown("""
-Das System hat zwei Schritte — und in jedem Schritt hast du andere Möglichkeiten einzugreifen.
+Das System liefert zwei Outputs. Beide kannst du beeinflussen.
 
 ---
 
-#### Schritt 1 — Welche Seiten werden gefunden?
+#### 📚 Output 1 — Textauszüge aus den Büchern
 
-Das sind die „Quellseiten" die du unten im Tab siehst. Hier hast du drei Hebel:
+Das sind die Rohseiten aus den Schulbüchern, die das System als passend eingestuft hat.
 
-| Hebel | Wo | Was passiert |
-|---|---|---|
-| **Bücher auswählen** | Checkboxen oben im Tab | Nur die angehakten Bücher werden durchsucht |
-| **Anzahl Treffer** | Zahlenfeld rechts (Standard: 10) | Mehr Treffer = breiteres Netz — z.B. 15 wenn du mehr Fundstellen willst |
-| **Themenformulierung** | Das Dropdown selbst | Das System sucht nach dem, was dem Thema-Begriff am ähnlichsten ist. Kürzere, präzise Begriffe finden oft bessere Treffer als lange Sätze |
+**Was du tun kannst, um bessere Treffer zu bekommen:**
 
-**Merke:** Schritt 1 entscheidet, *was ins Material reinkommt*. Kein KI-Eingriff hier — nur Textvergleich.
+- **Mehr Kontext zum Thema geben** — Das System sucht anhand des Themennamens. Je mehr inhaltliche Beschreibung du zum Thema lieferst (z.B. aus dem Lehrplan: welche Aspekte sollen abgedeckt sein?), desto gezielter die Treffer. Das geht heute über die Themenformulierung im Dropdown — in Zukunft könnte man direkt Lehrplan-Text anhängen.
+- **Mehr oder weniger Treffer** — Das Zahlenfeld rechts neben dem Dropdown (Standard: 10). Mehr Treffer = mehr Buchseiten im Ergebnis.
+- **Andere Bücher einbeziehen** — Neue Bücher in Tab „Bücher hochladen" indexieren. Mehr Bücher = mehr mögliche Fundstellen.
 
 ---
 
-#### Schritt 2 — Wie wird der Text geschrieben?
+#### 📝 Output 2 — Zusammenfassung
 
-Das ist die „Zusammenfassung" die du oben siehst. Hier hast du vier Hebel:
+Das ist der Text, den die KI aus den gefundenen Buchseiten schreibt.
 
-| Hebel | Wo | Was passiert |
-|---|---|---|
-| **System-Prompt** | ⚙️ Klappen im Tab „Thema abfragen" | Die Grundanweisung an die KI. Bestimmt Ton, Struktur, Sprache. Änderungen gelten sofort |
-| **Beispieldokumente** | Tab „Beispiele hochladen" | Wenn ein Beispiel thematisch passt, schreibt die KI im gleichen Format und Stil |
-| **Anzahl Treffer (top_k)** | Zahlenfeld | Mehr Quellseiten → mehr Kontext für die KI → andere Zusammenfassung |
-| **🔄 Neu generieren** | Button unter dem Ergebnis | Zwingt das System, nochmal zu schreiben — z.B. nach einer Prompt-Änderung |
+**Was du tun kannst, um eine bessere Zusammenfassung zu bekommen:**
 
----
-
-#### Welcher Hebel hilft bei welchem Problem?
-
-| Problem | Was tun |
-|---|---|
-| Die gefundenen Seiten sind nicht relevant | Themenformulierung präzisieren — z.B. statt „Kommunikation" besser „Kommunikationsmodelle Schulz von Thun" |
-| Zu wenige Treffer | top_k auf 15–20 erhöhen |
-| Zusammenfassung klingt falsch / zu förmlich | System-Prompt anpassen (⚙️) |
-| Zusammenfassung hat nicht das richtige Format | Beispieldokument für dieses Thema hochladen |
-| Neues Beispiel hochgeladen, altes Ergebnis noch gecacht | 🔄 Neu generieren klicken |
+- **Mehr Beispiele hochladen** — Je mehr fertige Texte du im Tab „Beispiele hochladen" hinterlegst, desto klarer versteht die KI, wie das Ergebnis aussehen soll. Format, Struktur, Tonalität — alles wird aus deinen Beispielen gelernt.
+- **Den Auftrag präzisieren** — Über den System-Prompt (⚙️ im Tab „Thema abfragen") kannst du beschreiben, was die Zusammenfassung leisten soll. Zum Beispiel: *„Hilf Lehrern dabei, eine 45-Minuten-Stunde vorzubereiten"* oder *„Erkläre das Thema so, dass ein Berufsanfänger sofort loslegen kann."* Je klarer der Auftrag, desto besser das Ergebnis.
+- **Neu generieren** — Der 🔄-Button erzeugt eine neue Version aus denselben Quellen. Gut zum Vergleichen nach einer Prompt-Änderung oder einem neuen Beispieldokument.
+- **Modelle vergleichen** — In Zukunft: verschiedene KI-Modelle für die Zusammenfassung ausprobieren und die Ergebnisse nebeneinanderlegen. Heute läuft alles auf Mistral Large.
         """)
 
     st.markdown("---")
