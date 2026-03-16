@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-16] Update cost estimates in Wie funktioniert es? tab
+
+### Changed
+- `app_Claude.py` Tab "Wie funktioniert es?" — Kostentabelle komplett überarbeitet:
+  - Alte Schätzung "3–5 € pro Buch" korrigiert auf reale Messwerte (~€0,20 pro 100 Seiten)
+  - Neue Tabelle mit 7 Zeilen: Buch (100/300 S.), Lehrplan, Beispieldokument (docx/pdf), Abfrage (1. Mal / gecacht)
+  - Erklärung der drei Kostentreiber (OCR, Embed, Chat) mit konkreten Beträgen
+  - Faustregel für Philipp hervorgehoben
+- `app_Claude.py` Schritt-1-Expander — Kostenhinweis von "3–5 €" auf "~0,60 € für 300-Seiten-Buch" korrigiert
+
+---
+
 ## [2026-03-16] Cost tracking documentation
 
 ### Added

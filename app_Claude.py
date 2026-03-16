@@ -1003,8 +1003,8 @@ und schreibt daraus automatisch eine Zusammenfassung.
 
 **Wie oft?** Nur einmal pro Buch. Danach ist alles gespeichert und das Buch muss nie wieder verarbeitet werden.
 
-**Was kostet das?** Ein bisschen Mistral-Credits für das Lesen (OCR) und für das Erstellen der Fingerabdrücke.
-Bei einem 300-Seiten-Buch etwa 3–5 €.
+**Was kostet das?** Rund **0,20 € pro 100 Seiten** — also etwa 0,60 € für ein typisches 300-Seiten-Buch.
+Das Lesen (OCR) macht fast den ganzen Betrag aus, die Fingerabdrücke sind winzig.
         """)
 
     with st.expander("📄 Schritt 2 — Lehrplan hochladen (einmalig)"):
@@ -1094,17 +1094,35 @@ und werden dauerhaft gespeichert.
 
     st.markdown("---")
 
-    st.subheader("💰 Was kostet ein Abfrage?")
+    st.subheader("💰 Was kostet was?")
     st.markdown("""
-| Was | Kosten |
-|---|---|
-| Buch das erste Mal verarbeiten (OCR + Fingerabdrücke) | ~3–5 € einmalig |
-| Lehrplan verarbeiten | ~0,10 € einmalig |
-| Beispieldokument hochladen | ~0,001 € (Fingerabdruck) |
-| Thema abfragen (erstes Mal) | ~0,05 € |
-| Thema nochmal abfragen (gecacht) | **€0** |
+Die Kosten entstehen durch drei verschiedene Mistral-Dienste.
+Hier die realen Zahlen — gemessen an echten Verarbeitungen in diesem System:
 
-Nach der ersten Runde (alle Bücher indexiert, alle Themen einmal abgefragt) kostet der laufende Betrieb praktisch nichts mehr.
+| Was | Wann | Typische Kosten |
+|---|---|---|
+| 📚 **Schulbuch (100 Seiten)** | einmalig beim ersten Upload | ~**€0,20** |
+| 📚 **Schulbuch (300 Seiten)** | einmalig beim ersten Upload | ~**€0,55–0,65** |
+| 📄 **Lehrplan-PDF (~40 Seiten)** | einmalig beim ersten Upload | ~**€0,10** |
+| 📝 **Beispieldokument (.docx)** | einmalig beim Hochladen | < **€0,01** (fast gratis) |
+| 📝 **Beispieldokument (.pdf)** | einmalig beim Hochladen | ~**€0,01** |
+| 🔍 **Thema abfragen (1. Mal)** | einmalig pro Thema | ~**€0,01–0,02** |
+| 🔍 **Thema abfragen (gecacht)** | bei jeder Wiederholung | **€0,00** |
+
+**Was steckt hinter den Zahlen?**
+
+- **OCR (Lesen)** kostet ca. 0,18 Cent pro Seite — das ist der größte Posten beim Indexieren
+- **Fingerabdrücke (Embedding)** kosten fast nichts — ~0,003 € pro Buch
+- **Zusammenfassung (Mistral Large)** kostet ~0,01–0,02 € pro frischer Abfrage
+  (= 10 Buchseiten als Kontext + System-Prompt + generierter Text)
+
+**Faustregel für Philipp:**
+> Ein neues Buch kostet einmalig ca. **0,20 € pro 100 Seiten**.
+> Jedes neue Thema kostet einmalig ca. **0,01–0,02 €**.
+> Alles danach: **gratis** (Cache).
+
+Nach der ersten Runde — alle Bücher indexiert, alle Themen einmal abgefragt —
+läuft das System ohne laufende Kosten, bis neue Bücher oder Themen hinzukommen.
     """)
 
     st.markdown("---")
