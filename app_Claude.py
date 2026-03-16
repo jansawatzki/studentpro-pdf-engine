@@ -634,6 +634,42 @@ with tab_beispiele:
         "an Philipps eigenem Format (Content 1 / Content 2 usw.)."
     )
 
+    with st.expander("❓ Was passiert, wenn ich eine Datei hochlade?"):
+        st.markdown("""
+**Schritt 1 — Text lesen**
+Bei einer `.docx`-Datei liest das System den Text direkt aus der Datei.
+Bei einer `.pdf`-Datei schickt es die Datei an Mistral OCR, das die Seiten wie ein Scanner in Text umwandelt.
+
+**Schritt 2 — Fingerabdruck berechnen**
+Mistral Embed berechnet einen „Fingerabdruck" des Textes — eine Liste von 1024 Zahlen,
+die beschreiben, worum es in dem Dokument geht. Ähnliche Themen → ähnliche Zahlen.
+
+**Schritt 3 — Speichern**
+Text + Fingerabdruck werden in der Datenbank abgelegt (Tabelle `examples`).
+
+---
+
+**Was passiert beim Abfragen?**
+
+Wenn du ein Thema abfragst (z.B. *„Lyrische Texte"*), berechnet das System auch für dieses Thema einen Fingerabdruck.
+Es vergleicht ihn dann mit den Fingerabdrücken aller hochgeladenen Beispieldokumente.
+
+Wenn ein Beispiel gut passt (Ähnlichkeit ≥ 50 %), wird es Mistral mitgeschickt:
+*„Hier ist ein Beispiel, wie das Ergebnis aussehen soll — orientiere dich an Aufbau und Stil."*
+
+Mistral schreibt dann die Zusammenfassung in Philipps Format (Content 1, Content 2 usw.).
+
+---
+
+**❓ Ändert sich der System-Prompt, wenn ich Beispiele hochlade?**
+
+**Nein.** Der System-Prompt (unter ⚙️ im Tab „Thema abfragen") bleibt unverändert.
+Das Beispieldokument wird *zusätzlich* an Mistral geschickt — als Anhang zusammen mit den Schulbuch-Auszügen.
+Mistral sieht also auf einmal: Thema + Buchseiten + Stilvorlage.
+
+Du kannst den System-Prompt trotzdem jederzeit manuell anpassen — Änderungen dort gelten dauerhaft.
+        """)
+
     uploaded_examples = st.file_uploader(
         "Beispieldokumente auswählen (.docx oder .pdf) — mehrere gleichzeitig möglich",
         type=["docx", "pdf"],
@@ -986,95 +1022,151 @@ Alle drei Testthemen liefern direkte Treffer auf Position 1. Formaler Abnahmetes
 
 # ── Tab 4: How it works ────────────────────────────────────────────────────────
 with tab4:
-    st.header("Wie funktioniert das System?")
+    st.header("❓ Wie funktioniert das System?")
+    st.caption("Hier erklären wir alles — so einfach wie möglich, ohne Fachwissen nötig.")
 
+    st.markdown("---")
+
+    st.subheader("🧠 Die Grundidee — in einem Satz")
     st.markdown("""
-## Die drei Phasen
+Du gibst dem System Schulbücher. Das System liest sie komplett durch, merkt sich jeden Abschnitt,
+und kann später auf Knopfdruck alles finden, was zu einem bestimmten Lehrplan-Thema passt —
+und schreibt daraus automatisch eine Zusammenfassung.
+    """)
 
-### 1. Einmalig: Bücher verarbeiten (Tab „Bücher hochladen")
+    st.markdown("---")
 
-```
-PDF hochladen
-    → OCR (Mistral liest jede Seite als Text)
-    → jede Seite wird in ~1024 Zahlen umgewandelt („Embedding")
-    → Zahlen + Text + Fach werden in der Datenbank gespeichert
-```
+    with st.expander("📚 Schritt 1 — Bücher hochladen (einmalig)"):
+        st.markdown("""
+**Was du tust:** Du lädst ein Schulbuch als PDF hoch.
 
-Jede Seite bekommt einen **Zahlenvektor** — eine Art mathematischer Fingerabdruck
-des Inhalts. Das passiert nur einmal pro Buch und kostet danach nichts mehr.
-Bereits indexierte Bücher werden automatisch übersprungen (Cache).
+**Was das System macht:**
+
+1. **Lesen** — Die KI (Mistral OCR) liest jede einzelne Seite des PDFs und wandelt sie in normalen Text um.
+   Das ist nötig, weil PDFs oft keine einfachen Textdateien sind — besonders bei eingescannten Büchern.
+
+2. **Fingerabdruck erstellen** — Für jeden Textabschnitt (~500 Wörter) wird ein sogenannter *Fingerabdruck* berechnet.
+   Das ist eine Liste von 1024 Zahlen, die beschreiben, worum es in diesem Abschnitt geht.
+   Ähnliche Themen bekommen ähnliche Fingerabdrücke — das ist die Magie dahinter.
+
+3. **Speichern** — Text + Fingerabdruck + Seitenzahl werden in der Datenbank abgelegt.
+
+**Wie oft?** Nur einmal pro Buch. Danach ist alles gespeichert und das Buch muss nie wieder verarbeitet werden.
+
+**Was kostet das?** Ein bisschen Mistral-Credits für das Lesen (OCR) und für das Erstellen der Fingerabdrücke.
+Bei einem 300-Seiten-Buch etwa 3–5 €.
+        """)
+
+    with st.expander("📄 Schritt 2 — Lehrplan hochladen (einmalig)"):
+        st.markdown("""
+**Was du tust:** Du lädst den NRW-Kernlehrplan als PDF hoch.
+
+**Was das System macht:**
+
+1. Die KI liest den gesamten Lehrplan-Text
+2. Sie erkennt automatisch das Fach (Deutsch, Mathe, ...) und ob es EF, GK oder LK ist
+3. Sie extrahiert alle konkreten Themen — z.B. *„Sprachvarietäten und ihre gesellschaftliche Bedeutung"*
+4. Du siehst die extrahierten Themen und kannst auswählen, welche gespeichert werden sollen
+
+**Wozu?** Die gespeicherten Themen erscheinen später als Dropdown im Tab „Thema abfragen" —
+so musst du nicht jedes Mal den genauen Thementitel eintippen.
+
+**Markierungen in der Liste:**
+- ⭐ **Rot** — Themen, die Philipp persönlich markiert hat (höchste Priorität)
+- ✓ **Grün** — Themen, die sowohl in Philipps Excel als auch im Kernlehrplan stehen
+- **Ohne Markierung** — nur im Kernlehrplan
+        """)
+
+    with st.expander("🔍 Schritt 3 — Thema abfragen (jederzeit)"):
+        st.markdown("""
+**Was du tust:** Du wählst ein Thema aus dem Dropdown aus und klickst auf „Relevante Inhalte abrufen".
+
+**Was das System macht — Schritt für Schritt:**
+
+1. **Dein Thema bekommt auch einen Fingerabdruck** — genau wie die Buchseiten.
+
+2. **Vergleich** — Das System vergleicht den Fingerabdruck deines Themas mit den Fingerabdrücken
+   aller gespeicherten Buchseiten. Je ähnlicher die Fingerabdrücke, desto relevanter die Seite.
+
+3. **Top 10** — Die 10 ähnlichsten Abschnitte werden ausgewählt. Das sind die Fundstellen.
+
+4. **Zusammenfassung schreiben** — Die 10 Abschnitte werden zusammen an Mistral Large geschickt,
+   zusammen mit der Anweisung: *„Schreib eine strukturierte Zusammenfassung für Lehrer in NRW."*
+   Mistral schreibt dann den fertigen Text.
+
+5. **Gespeichert** — Das Ergebnis wird gecacht. Wenn jemand dasselbe Thema nochmal abfragt,
+   kommt die gespeicherte Version zurück — ohne nochmal Mistral zu bezahlen.
+
+**Was sind die „Quellseiten" unten?**
+Das sind die 10 Abschnitte, die das System ausgewählt hat — mit Buchtitel, Seitenzahl und
+Ähnlichkeitsprozentsatz. Du kannst jeden aufklappen und den Originaltext lesen.
+        """)
+
+    with st.expander("📝 Schritt 4 — Beispieldokumente hochladen (optional, aber wichtig)"):
+        st.markdown("""
+**Was das ist:** Philipps eigene, fertig geschriebene Beispieltexte — so wie er die Zusammenfassungen
+am Ende haben möchte. Mit seinen eigenen Kapiteln (Content 1, Content 2 usw.), in seiner eigenen Sprache.
+
+**Was du tust:** Du lädst diese Dokumente im Tab „Beispiele hochladen" hoch.
+
+**Was das System damit macht:**
+
+1. **Text lesen** — Bei .docx-Dateien wird der Text direkt ausgelesen.
+   Bei PDFs läuft OCR (wie bei den Büchern).
+
+2. **Fingerabdruck** — Auch das Beispieldokument bekommt einen Fingerabdruck.
+   Das System versteht also: *„Dieses Beispiel handelt von Lyrischen Texten."*
+
+3. **Gespeichert** — Text + Fingerabdruck werden in einer eigenen Tabelle (`examples`) abgelegt.
+
+**Was passiert beim nächsten Abfragen?**
+
+Wenn du ein Thema abfragst (z.B. *„Lyrische Texte"*), passiert jetzt zusätzlich:
+- Das System schaut: Gibt es ein Beispieldokument, das gut zu diesem Thema passt?
+- Wenn ja (Ähnlichkeit ≥ 50 %), wird dieses Beispiel an Mistral mitgeschickt mit der Anweisung:
+  *„Orientiere dich am Aufbau und Stil dieses Beispiels."*
+- Mistral schreibt dann die Zusammenfassung in Philipps eigenem Format — mit Content 1, Content 2 usw.
 
 ---
 
-### 2. Einmalig: Lehrplan verarbeiten (Tab „Lehrplan hochladen")
+**❓ Ändert sich dabei der System-Prompt?**
 
-```
-Lehrplan-PDF hochladen
-    → OCR (Mistral liest den gesamten Lehrplan)
-    → Mistral Large erkennt automatisch: Fach + EF / GK / LK
-    → Extrahierte Themen werden zur Überprüfung angezeigt
-    → Qualitätscheck: wie viele von Philipps Excel-Themen wurden gefunden?
-    → Bestätigte Themen werden in der DB gespeichert
-```
+**Nein.** Der System-Prompt (die Grundanweisung an Mistral) bleibt immer gleich.
+Das Beispieldokument wird *extra hinzugefügt* — als Anhang im selben Paket wie die Schulbuch-Auszüge.
+Mistral sieht also drei Dinge auf einmal:
+- 📌 Das Thema
+- 📖 Die 10 relevantesten Buchseiten
+- 📄 Das passende Beispieldokument als Stilvorlage (wenn vorhanden)
 
-Bereits verarbeitete Lehrplan-PDFs werden automatisch aus dem Cache geladen — kein
-erneuter Mistral-Aufruf nötig. Der Extraktions-Prompt ist editierbar und wird in
-Supabase gespeichert.
+Der System-Prompt ist editierbar unter ⚙️ im Tab „Thema abfragen" — Änderungen dort gelten sofort
+und werden dauerhaft gespeichert.
+        """)
 
-**Markierungen in der Themenübersicht:**
-- ★ Rot — von Philipp in der Excel markiert (höchste Priorität)
-- ✓ Grün — im Kernlehrplan gefunden UND in Philipps Excel
-- Ohne Markierung — nur im Kernlehrplan, nicht in der Excel
+    st.markdown("---")
 
----
+    st.subheader("💰 Was kostet ein Abfrage?")
+    st.markdown("""
+| Was | Kosten |
+|---|---|
+| Buch das erste Mal verarbeiten (OCR + Fingerabdrücke) | ~3–5 € einmalig |
+| Lehrplan verarbeiten | ~0,10 € einmalig |
+| Beispieldokument hochladen | ~0,001 € (Fingerabdruck) |
+| Thema abfragen (erstes Mal) | ~0,05 € |
+| Thema nochmal abfragen (gecacht) | **€0** |
 
-### 3. Bei jeder Suche (Tab „Thema abfragen")
+Nach der ersten Runde (alle Bücher indexiert, alle Themen einmal abgefragt) kostet der laufende Betrieb praktisch nichts mehr.
+    """)
 
-```
-Thema auswählen
-    → wird in Zahlen umgewandelt (Embedding)
-    → Vergleich mit allen gespeicherten Seiten-Vektoren (Cosine Similarity)
-    → Top-10 ähnlichsten Seiten werden ausgewählt
-    → Mistral Large schreibt Zusammenfassung aus diesen 10 Seiten
-    → Ergebnis wird gecacht → Folgeabfragen kosten €0
-```
+    st.markdown("---")
 
-Die Suche ist automatisch auf das richtige Fach eingeschränkt — Deutsch-Themen
-durchsuchen nur Deutsch-Bücher, Mathe-Themen nur Mathe-Bücher.
-Einzelne Bücher können per Checkbox de-/aktiviert werden.
+    st.subheader("🎯 Wann ist das System „fertig"?")
+    st.markdown("""
+Das vertraglich vereinbarte Ziel:
 
----
+> Für ein Lehrplan-Thema werden die **Top-10 Ergebnisse** angeschaut.
+> Mindestens **8 von 10** müssen wirklich relevant sein.
+> Das muss für **mindestens 5 verschiedene Themen** stabil funktionieren.
 
-## Zwei editierbare System-Prompts
-
-| Prompt | Wo | Zweck |
-|---|---|---|
-| **Extraktions-Prompt** | Tab „Lehrplan hochladen" → ⚙️ | Steuert wie Mistral Themen aus dem Lehrplan-PDF extrahiert |
-| **Zusammenfassungs-Prompt** | Tab „Thema abfragen" → ⚙️ | Steuert wie Mistral die Schulbuch-Auszüge zusammenfasst |
-
-Beide Prompts werden in Supabase gespeichert und überleben App-Neustarts.
-
----
-
-## Stellschrauben für bessere Qualität
-
-| Maßnahme | Aufwand | Effekt |
-|---|---|---|
-| **Extraktions-Prompt anpassen** | sofort | Mistral findet mehr / präzisere Themen aus dem Lehrplan |
-| **Anzahl Ergebnisse erhöhen** (top_k: 10 → 15) | sofort | Mehr Kontext → vollständigere Zusammenfassungen |
-| **Mehr Bücher indexieren** | mittel | Mehr Quellen = mehr Abdeckung |
-| **Hybrid Search** (Semantik + Keyword) | mittel | Findet auch Seiten mit exakten Fachbegriffen |
-| **Query Expansion** | mittel | Thema → 3–5 Synonyme → breitere Suche |
-| **Kleinere Texteinheiten** (Chunks statt ganzer Seiten) | größer | Präzisere Treffer, weniger Rauschen |
-
----
-
-## Wie Philipp die Qualität prüfen kann
-
-Das vereinbarte Abnahmekriterium:
-
-> Ein Thema aus der Liste auswählen → Top-10 Ergebnisse anschauen →
-> für jede Seite **1** (relevant) oder **0** (nicht relevant) vergeben →
-> Ziel: **≥ 8 von 10**, stabil über mindestens 5 verschiedene Themen.
-""")
+Sobald das erreicht ist, gilt das System als abgenommen. ✅
+    """)
 
