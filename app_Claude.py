@@ -1159,7 +1159,7 @@ Nach der ersten Runde (alle Bücher indexiert, alle Themen einmal abgefragt) kos
 
     st.markdown("---")
 
-    st.subheader("🎯 Wann ist das System „fertig"?")
+    st.subheader('🎯 Wann ist das System "fertig"?')
     st.markdown("""
 Das vertraglich vereinbarte Ziel:
 
