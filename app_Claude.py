@@ -622,7 +622,7 @@ with tab_lehrplan:
 
         col_a, col_b, col_c = st.columns(3)
         col_a.metric("Extrahierte Themen", len(all_extracted))
-        col_b.metric("Philipps Excel-Themen", len(excel_kw))
+        col_b.metric("Themen aus Excel", len(excel_kw))
         col_c.metric("Übereinstimmungen", f"{len(matched_pairs)} / {len(excel_kw)}")
         if matched_pairs:
             with st.expander(f"✓ {len(matched_pairs)} Übereinstimmungen anzeigen"):
@@ -632,7 +632,7 @@ with tab_lehrplan:
 
         st.subheader("Themen auswählen")
         st.caption("Alle Themen, die du bestätigst, werden in den Dropdown übernommen. "
-                   "✓ = auch in Philipps Excel.")
+                   "✓ = auch in der Excel-Liste.")
         selected_new = []  # list of (course_type, topic)
         for ct, topics_list in by_course_now.items():
             st.markdown(f"**{ct}** — {len(topics_list)} Themen")
@@ -704,7 +704,7 @@ with tab_lehrplan:
             total   = sum(len(v) for v in ct_dict.values())
             n_pin   = sum(1 for v in ct_dict.values() for r in v if r["pinned"])
             n_lp    = sum(1 for v in ct_dict.values() for r in v if r.get("in_lehrplan") and not r["pinned"])
-            with st.expander(f"{subj} — {total} Themen ({n_pin} von Philipp markiert, {n_lp} im Kernlehrplan)"):
+            with st.expander(f"{subj} — {total} Themen ({n_pin} markiert ★, {n_lp} im Kernlehrplan)"):
                 for ct in CT_ORDER:
                     if ct not in ct_dict:
                         continue
@@ -734,10 +734,10 @@ with tab_lehrplan:
 with tab_beispiele:
     st.header("Beispieldokumente hochladen")
     st.caption(
-        "Lade hier Philipps Beispieldokumente hoch (docx oder pdf). "
+        "Lade hier Beispieldokumente hoch (docx oder pdf). "
         "Das System findet beim Abfragen automatisch das passendste Beispiel "
         "und gibt es Mistral als Stilvorlage mit — so orientiert sich die Zusammenfassung "
-        "an Philipps eigenem Format (Content 1 / Content 2 usw.)."
+        "am gewünschten Format (Content 1 / Content 2 usw.)."
     )
 
     with st.expander("❓ Was passiert, wenn ich eine Datei hochlade?"):
@@ -763,7 +763,7 @@ Es vergleicht ihn dann mit den Steckbriefen aller hochgeladenen Beispieldokument
 Wenn ein Beispiel gut passt (Ähnlichkeit ≥ 50 %), wird es Mistral mitgeschickt:
 *„Hier ist ein Beispiel, wie das Ergebnis aussehen soll — orientiere dich an Aufbau und Stil."*
 
-Mistral schreibt dann die Zusammenfassung in Philipps Format (Content 1, Content 2 usw.).
+Mistral schreibt dann die Zusammenfassung im gewünschten Format (Content 1, Content 2 usw.).
 
 ---
 
@@ -898,7 +898,7 @@ with tab2:
     if not options:
         st.warning("Noch keine Themen geladen. Bitte zuerst einen Lehrplan hochladen.")
     else:
-        col1, col2 = st.columns([3, 1])
+        col1, = st.columns([1])
         with col1:
             labels = [
                 f"{'★ ' if pinned else ''}{topic}  [{subject} · {course_type}]"
@@ -912,8 +912,7 @@ with tab2:
             subject     = options[selected_idx][0]
             course_type = options[selected_idx][1]
             keyword     = options[selected_idx][2]
-        with col2:
-            top_k = st.number_input("Anzahl Ergebnisse", min_value=3, max_value=20, value=10)
+        top_k = 20
 
         # ── System-Prompt Editor ───────────────────────────────────────────────
         with st.expander("⚙️ System-Prompt anpassen"):
@@ -1135,8 +1134,8 @@ Das Lesen (OCR) macht fast den ganzen Betrag aus, die Steckbriefe sind winzig.
 so musst du nicht jedes Mal den genauen Thementitel eintippen.
 
 **Markierungen in der Liste:**
-- ⭐ **Rot** — Themen, die Philipp persönlich markiert hat (höchste Priorität)
-- ✓ **Grün** — Themen, die sowohl in Philipps Excel als auch im Kernlehrplan stehen
+- ⭐ **Rot** — persönlich markierte Themen (höchste Priorität)
+- ✓ **Grün** — Themen, die sowohl in der Excel-Liste als auch im Kernlehrplan stehen
 - **Ohne Markierung** — nur im Kernlehrplan
         """)
 
@@ -1167,8 +1166,8 @@ Das sind die 10 Abschnitte, die das System ausgewählt hat — mit Buchtitel, Se
 
     with st.expander("📝 Schritt 4 — Beispieldokumente hochladen (optional, aber wichtig)"):
         st.markdown("""
-**Was das ist:** Philipps eigene, fertig geschriebene Beispieltexte — so wie er die Zusammenfassungen
-am Ende haben möchte. Mit seinen eigenen Kapiteln (Content 1, Content 2 usw.), in seiner eigenen Sprache.
+**Was das ist:** Fertig geschriebene Beispieltexte — so wie die Zusammenfassungen
+am Ende aussehen sollen. Mit Kapiteln (Content 1, Content 2 usw.) im gewünschten Stil.
 
 **Was du tust:** Du lädst diese Dokumente im Tab „Beispiele hochladen" hoch.
 
@@ -1188,7 +1187,7 @@ Wenn du ein Thema abfragst (z.B. *„Lyrische Texte"*), passiert jetzt zusätzli
 - Das System schaut: Gibt es ein Beispieldokument, das gut zu diesem Thema passt?
 - Wenn ja (Ähnlichkeit ≥ 50 %), wird dieses Beispiel an Mistral mitgeschickt mit der Anweisung:
   *„Orientiere dich am Aufbau und Stil dieses Beispiels."*
-- Mistral schreibt dann die Zusammenfassung in Philipps eigenem Format — mit Content 1, Content 2 usw.
+- Mistral schreibt dann die Zusammenfassung im gewünschten Format — mit Content 1, Content 2 usw.
 
 ---
 
@@ -1277,12 +1276,12 @@ Das ist der aktuelle Stand — was das System schon kennt und durchsuchen kann.
 | Tabelle | Was drin ist |
 |---|---|
 | **Bücher** (`documents`) | 424 Seiten — Klett *Deutsch kompetent EF* (109 S.) + Paul D *Oberstufe Gesamtband* (315 S.), alle Fach: Deutsch |
-| **Themen** (`topics`) | 93 Themen aus Philipps Excel (Deutsch + Mathe, EF/GK/LK) + extrahierte Kernlehrplan-Themen |
+| **Themen** (`topics`) | 93 Themen aus Excel (Deutsch + Mathe, EF/GK/LK) + extrahierte Kernlehrplan-Themen |
 | **Zusammenfassungs-Cache** (`summary_cache`) | Wächst mit jeder Abfrage — Wiederholungen kosten €0 |
 | **Einstellungen** (`settings`) | 2 System-Prompts (Extraktion + Zusammenfassung), editierbar in der App |
-| **Beispiele** (`examples`) | Philipps Beispieldokumente als Stilvorlagen |
+| **Beispiele** (`examples`) | Hochgeladene Beispieldokumente als Stilvorlagen |
 
-**Erste Testergebnisse (vom 05.03.2026):**
+**Erste Testergebnisse:**
 
 | Thema | Bester Treffer | Ähnlichkeit |
 |---|---|---|
@@ -1299,11 +1298,11 @@ Alle drei Testthemen landen sofort auf Platz 1. Der formale Abnahmetest (Top-10,
 |---|---|---|
 | **PDF lesen (OCR)** | Mistral OCR `mistral-ocr-latest` | Erkennt auch eingescannte Seiten zuverlässig |
 | **Steckbriefe** | Mistral Embed `mistral-embed` (1024 Zahlen) | EU-gehostet, DSGVO-konform, günstig — alles bei einem Anbieter |
-| **Datenbank** | Supabase + pgvector | Philipp hat volle Kontrolle, skaliert gut |
+| **Datenbank** | Supabase + pgvector | Volle Datenkontrolle, skaliert gut |
 | **KI-Zusammenfassung** | Mistral Large `mistral-large-latest` | Stark, EU-gehostet |
 | **Oberfläche** | Streamlit | Schnell zu bauen, reicht für internes Tool |
 | **Hosting** | Streamlit Cloud | Auto-Deploy bei jedem GitHub-Push |
-| **Code** | GitHub `jansawatzki/studentpro-pdf-engine` | Public repo, Rachid hat Zugriff |
+| **Code** | GitHub `jansawatzki/studentpro-pdf-engine` | Public repo |
 
 **Daten-Fluss in einem Satz:**
 PDF → OCR (Text) → Embed (Zahlen) → Supabase (speichern) → bei Abfrage: Thema embedden → nächste Nachbarn suchen → Mistral Large zusammenfassen → Cache
