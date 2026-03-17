@@ -934,7 +934,10 @@ with tab2:
 
         cached_summary, cached_sources = get_cached_summary(keyword)
         if cached_summary:
-            st.info("💾 **Aus Cache geladen** — keine Mistral-Credits verbraucht.")
+            if st.session_state.get("fresh_topic") == keyword:
+                st.success("✅ Neu generiert")
+            else:
+                st.info("💾 **Aus Cache geladen** — keine Mistral-Credits verbraucht.")
             with st.expander("📝 Zusammenfassung", expanded=True):
                 st.markdown(cached_summary)
             if cached_sources:
@@ -965,11 +968,13 @@ with tab2:
         if run_generation:
             st.session_state["auto_generate"] = False
             try:
-                with st.spinner("Suchanfrage wird eingebettet..."):
+                with st.spinner("Thema wird analysiert (Steckbrief wird berechnet)..."):
                     emb = mistral.embeddings.create(model="mistral-embed", inputs=[keyword])
                     query_embedding = emb.data[0].embedding
+                    query_embed_tokens = getattr(emb.usage, "prompt_tokens", 0) if hasattr(emb, "usage") and emb.usage else 0
 
-                with st.spinner("Dokumente werden durchsucht..."):
+                books_label = ", ".join(b.split(".")[0] for b in selected_books)
+                with st.spinner(f"Bücher werden durchsucht: {books_label}..."):
                     result = supabase.rpc(
                         "match_documents",
                         {"query_embedding": query_embedding, "match_count": int(top_k),
@@ -981,6 +986,15 @@ with tab2:
                 if not chunks:
                     st.warning("Keine relevanten Seiten gefunden. Bitte zuerst ein Buch hochladen.")
                 else:
+                    # Show which books contributed how many chunks
+                    book_hits: dict[str, int] = {}
+                    for r in chunks:
+                        book_hits[r["filename"]] = book_hits.get(r["filename"], 0) + 1
+                    hits_label = " · ".join(
+                        f"{fn.split('.')[0]} ({n} Abschnitte)" for fn, n in book_hits.items()
+                    )
+                    st.caption(f"📖 Gefunden in: {hits_label}")
+
                     context = "\n\n---\n\n".join(
                         [f"[{r['filename']}, Seite {r['page_number']}]\n{r['content']}" for r in chunks]
                     )
@@ -994,9 +1008,11 @@ with tab2:
                             f"{closest_example['content'][:4000]}"
                         )
                         example_note = f"📄 Stilvorlage: **{closest_example['filename']}** (Ähnlichkeit: {closest_example['similarity']:.0%})"
+                        st.caption(f"📄 Stilvorlage wird verwendet: **{closest_example['filename']}** ({closest_example['similarity']:.0%} Ähnlichkeit)")
                     else:
                         example_block = ""
                         example_note = None
+                        st.caption("📄 Kein passendes Beispieldokument gefunden — Zusammenfassung ohne Stilvorlage")
 
                     with st.spinner("Zusammenfassung wird erstellt (Mistral Large)..."):
                         system_prompt = load_system_prompt()
@@ -1012,6 +1028,19 @@ with tab2:
                             ],
                         )
 
+                    # ── Cost calculation ───────────────────────────────────────
+                    chat_in  = response.usage.prompt_tokens     if hasattr(response, "usage") and response.usage else 0
+                    chat_out = response.usage.completion_tokens if hasattr(response, "usage") and response.usage else 0
+                    query_cost = query_embed_tokens * PRICE_EMBED_PER_TOKEN
+                    chat_cost  = chat_in * PRICE_LARGE_IN_TOKEN + chat_out * PRICE_LARGE_OUT_TOKEN
+                    total_query_cost = query_cost + chat_cost
+                    st.info(
+                        f"💰 Kosten dieser Abfrage: **${total_query_cost:.4f}** "
+                        f"(Steckbrief: ${query_cost:.5f} · "
+                        f"Zusammenfassung: ${chat_cost:.4f} — "
+                        f"{chat_in} Input-Tokens, {chat_out} Output-Tokens)"
+                    )
+
                     summary_text = response.choices[0].message.content
                     sources = [
                         {"filename": r["filename"], "page_number": r["page_number"],
@@ -1019,8 +1048,9 @@ with tab2:
                         for r in chunks
                     ]
 
-                    # Save to cache
+                    # Save to cache + mark as freshly generated
                     save_cached_summary(keyword, summary_text, sources)
+                    st.session_state["fresh_topic"] = keyword
 
                     with st.expander("📝 Zusammenfassung", expanded=True):
                         if example_note:
