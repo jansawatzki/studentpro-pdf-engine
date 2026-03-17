@@ -1128,11 +1128,11 @@ Das ist der Text, den die KI aus den gefundenen Buchseiten schreibt.
         st.markdown("""
 Es gibt drei Kostenarten:
 
-| | Wofür | Wann | Kosten |
-|---|---|---|---|
-| **1. OCR** | Buch lesen (Bild → Text) | einmalig beim Hochladen | ~€0,002 pro Seite |
-| **2. Steckbrief** | Text in Zahlen umwandeln | einmalig beim Hochladen | ~€0,01 pro Buch |
-| **3. Zusammenfassung** | KI schreibt den fertigen Text | einmalig pro Thema | ~€0,01–0,02 |
+| | Wofür | Wann | Kosten | Klett Deutsch (109 S.) |
+|---|---|---|---|---|
+| **1. OCR** | Buch lesen (Bild → Text) | einmalig beim Hochladen | ~€0,002 pro Seite | €0,22 |
+| **2. Steckbrief** | Text in Zahlen umwandeln | einmalig beim Hochladen | ~€0,01 pro Buch | €0,004 |
+| **3. Zusammenfassung** | KI schreibt den fertigen Text | einmalig pro Thema | ~€0,01–0,02 | €0,01–0,02 |
 
 Nach der ersten Runde kostet jede weitere Abfrage **€0** — alles ist gecacht.
         """)
