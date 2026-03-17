@@ -898,20 +898,18 @@ with tab2:
     if not options:
         st.warning("Noch keine Themen geladen. Bitte zuerst einen Lehrplan hochladen.")
     else:
-        col1, = st.columns([1])
-        with col1:
-            labels = [
-                f"{'★ ' if pinned else ''}{topic}  [{subject} · {course_type}]"
-                for subject, course_type, topic, pinned in options
-            ]
-            selected_idx = st.selectbox(
-                "Thema auswählen:",
-                range(len(labels)),
-                format_func=lambda i: labels[i],
-            )
-            subject     = options[selected_idx][0]
-            course_type = options[selected_idx][1]
-            keyword     = options[selected_idx][2]
+        labels = [
+            f"{'★ ' if pinned else ''}{topic}  [{subject} · {course_type}]"
+            for subject, course_type, topic, pinned in options
+        ]
+        selected_idx = st.selectbox(
+            "Thema auswählen:",
+            range(len(labels)),
+            format_func=lambda i: labels[i],
+        )
+        subject     = options[selected_idx][0]
+        course_type = options[selected_idx][1]
+        keyword     = options[selected_idx][2]
         top_k = 20
 
         # ── System-Prompt Editor ───────────────────────────────────────────────

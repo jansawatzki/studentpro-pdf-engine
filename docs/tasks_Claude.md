@@ -99,6 +99,21 @@ Source of truth for implementation order. Update status after every completed ta
 - [x] Chunking-Implementierung Steps 2+3+6+7: `chunk_text()`, `ingest_Claude.py` Update, `reindex_Claude.py` erstellt, `app_Claude.py` Tab1+2 aktualisiert
 - [x] Chunking Step 1 (SQL): via Supabase Management API ausgeführt — kein SQL Editor nötig
 - [x] Chunking Step 4: `reindex_Claude.py` abgeschlossen — 424 Seiten → 2126 Chunks (~5/Seite)
+- [x] DOCX Export: `generate_docx()` mit Markdown-Parsing, Download-Button in Tab 2
+- [x] `python-docx` zu `requirements.txt` hinzugefügt
+- [x] „Neu generieren" 2-Klick-Bug behoben — Cache aus DB löschen + `auto_generate` session_state + `st.rerun()`
+- [x] „Aus Cache geladen" nach frischer Generierung behoben — `fresh_topic` session_state Flag
+- [x] Reicher Generation-Status: Bücher, Stilvorlagen, Kosten nach Generierung
+- [x] Stilvorlage-Ähnlichkeitsschwelle entfernt — nächstes Beispiel immer verwendet
+- [x] `top_k` fest auf 20, Eingabefeld entfernt
+- [x] Namen (Philipp, Rachid) und Datumsangaben aus App-UI entfernt
+- [x] Überflüssigen `col1` Spalten-Wrapper aufgeräumt
+- [x] `nextstepsandquality_Claude.md` auf aktuellen Stand gebracht (17.03.2026)
+- [x] `cost_tracking_Claude.md` erstellt — 3 Kostenarten, Pricing-Konstanten, DB-Schema, SQL-Abfragen
+- [x] „Was kostet was?" in App: vereinfachte 3-Zeilen-Tabelle mit Beispielkosten + Modellnamen
+- [x] „Steckbrief" statt „Fingerabdruck" — verständlicher Begriff für Embeddings
+- [x] „Wie kann ich die Ergebnisse beeinflussen?" Expander in Tab „Wie funktioniert es?"
+- [x] `app-flow_Claude.md` v2.0 — vollständige Überarbeitung (5-Tab-System, zwei Phasen erklärt)
 
 ---
 

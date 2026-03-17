@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-17] UX cleanup — remove top_k input, names, dates
+
+### Changed
+- `app_Claude.py`: `top_k` fest auf 20 gesetzt — Eingabefeld entfernt
+- `app_Claude.py`: Alle sichtbaren Namen (Philipp, Rachid) und Datumsangaben (05.03.) aus der App entfernt
+- `app_Claude.py`: Stilvorlage-Logik — Ähnlichkeitsschwelle entfernt, nächstes Beispiel wird immer verwendet
+- `app_Claude.py`: Reicher Generation-Status — welche Bücher durchsucht, welche Stilvorlagen verfügbar/verwendet, Kosten nach Generierung
+- `app_Claude.py`: `st.session_state["fresh_topic"]` — zeigt „✅ Neu generiert" statt „💾 Aus Cache geladen" nach frischer Generierung
+- `app_Claude.py`: „Neu generieren" — löscht Cache aus DB + `auto_generate` Flag, startet sofort ohne zweiten Klick
+- `app_Claude.py`: Überflüssigen `col1` Spalten-Wrapper nach top_k-Entfernung aufgeräumt
+
+---
+
 ## [2026-03-17] DOCX export for summaries
 
 ### Added
