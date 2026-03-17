@@ -328,6 +328,61 @@ def save_cached_summary(topic: str, summary: str, sources: list):
     ).execute()
 
 
+def generate_docx(topic: str, summary_text: str, sources: list) -> bytes:
+    """Generate a DOCX file from a summary and return it as bytes."""
+    from docx import Document
+    from docx.shared import Pt, RGBColor
+    import re
+    import io
+
+    doc = Document()
+
+    # Title
+    title = doc.add_heading(topic, level=0)
+    title.runs[0].font.color.rgb = RGBColor(0x1a, 0x1a, 0x1a)
+
+    doc.add_paragraph()
+
+    # Parse and add summary — handle basic Markdown
+    for line in summary_text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            doc.add_paragraph()
+            continue
+        if stripped.startswith("### "):
+            doc.add_heading(stripped[4:], level=3)
+        elif stripped.startswith("## "):
+            doc.add_heading(stripped[3:], level=2)
+        elif stripped.startswith("# "):
+            doc.add_heading(stripped[2:], level=1)
+        elif stripped.startswith("- ") or stripped.startswith("* "):
+            doc.add_paragraph(stripped[2:], style="List Bullet")
+        else:
+            p = doc.add_paragraph()
+            # Handle **bold** inline
+            parts = re.split(r"\*\*(.+?)\*\*", stripped)
+            for i, part in enumerate(parts):
+                run = p.add_run(part)
+                if i % 2 == 1:
+                    run.bold = True
+
+    # Sources section
+    if sources:
+        doc.add_paragraph()
+        doc.add_heading("Quellen", level=2)
+        for r in sources:
+            chunk_label = f" (Abschnitt {r['chunk_index']+1})" if r.get("chunk_index", 0) > 0 else ""
+            doc.add_paragraph(
+                f"{r['filename']} — Seite {r['page_number']}{chunk_label} "
+                f"(Relevanz: {r['similarity']:.0%})",
+                style="List Bullet",
+            )
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 def is_already_indexed(filename: str) -> bool:
     row = supabase.table("documents").select("id").eq("filename", filename).limit(1).execute()
     return len(row.data) > 0
@@ -886,6 +941,14 @@ with tab2:
                         with st.expander(f"**{r['filename']}** — Seite {r['page_number']}{chunk_label}  (Relevanz: {r['similarity']:.0%})"):
                             st.write(r["content"][:800] + ("..." if len(r["content"]) > 800 else ""))
 
+            docx_bytes = generate_docx(keyword, cached_summary, cached_sources or [])
+            st.download_button(
+                "⬇️ Als Word-Dokument herunterladen (.docx)",
+                data=docx_bytes,
+                file_name=f"{keyword[:60].replace('/', '-')}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+
             if st.button("🔄 Neu generieren (Cache überschreiben)"):
                 cached_summary = None  # fall through to fresh run
 
@@ -952,6 +1015,14 @@ with tab2:
                         if example_note:
                             st.caption(example_note)
                         st.markdown(summary_text)
+
+                    docx_bytes = generate_docx(keyword, summary_text, sources)
+                    st.download_button(
+                        "⬇️ Als Word-Dokument herunterladen (.docx)",
+                        data=docx_bytes,
+                        file_name=f"{keyword[:60].replace('/', '-')}.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    )
 
                     with st.expander(f"📚 Quellseiten ({len(chunks)} Treffer)", expanded=False):
                         for r in chunks:

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-17] DOCX export for summaries
+
+### Added
+- `requirements.txt`: `python-docx` hinzugefügt
+- `app_Claude.py`: `generate_docx()` — erstellt Word-Dokument aus Thema, Zusammenfassung (mit Markdown-Parsing für Überschriften + Fettdruck) und Quellseiten-Liste
+- `app_Claude.py` Tab „Thema abfragen": `⬇️ Als Word-Dokument herunterladen` Button — erscheint nach gecachtem und frisch generiertem Ergebnis
+
+---
+
 ## [2026-03-17] Update nextstepsandquality_Claude.md to current state
 
 ### Changed

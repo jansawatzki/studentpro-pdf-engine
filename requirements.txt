@@ -3,3 +3,4 @@ mistralai==1.10.0
 supabase
 python-dotenv
 openpyxl
+python-docx

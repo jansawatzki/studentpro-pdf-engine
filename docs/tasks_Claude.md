@@ -137,6 +137,14 @@ Source of truth for implementation order. Update status after every completed ta
 
 ---
 
+## Phase 0h — DOCX Export (done ✅)
+
+- [x] Add `python-docx` to `requirements.txt`
+- [x] `generate_docx()` — topic as title, summary with Markdown parsing (headings, bold, bullets), sources list
+- [x] Download button in Tab 2 — both cached and fresh result paths
+
+---
+
 ## Phase 0g — Cost Tracking per Document (done ✅)
 
 - [x] Create `docs/cost_tracking_Claude.md` — explains pricing constants, measurement method, DB schema, SQL queries, known gaps, cost estimates per book type
