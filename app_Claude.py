@@ -929,6 +929,9 @@ with tab2:
                 st.success("Gespeichert.")
 
         # ── Cache check for summary ────────────────────────────────────────────
+        if "auto_generate" not in st.session_state:
+            st.session_state["auto_generate"] = False
+
         cached_summary, cached_sources = get_cached_summary(keyword)
         if cached_summary:
             st.info("💾 **Aus Cache geladen** — keine Mistral-Credits verbraucht.")
@@ -950,9 +953,17 @@ with tab2:
             )
 
             if st.button("🔄 Neu generieren (Cache überschreiben)"):
-                cached_summary = None  # fall through to fresh run
+                supabase.table("summary_cache").delete().eq("topic", keyword).execute()
+                st.session_state["auto_generate"] = True
+                st.rerun()
 
-        if not cached_summary and st.button("Relevante Inhalte abrufen", type="primary", disabled=not selected_books):
+        run_generation = (
+            not cached_summary and
+            (st.session_state.get("auto_generate") or
+             st.button("Relevante Inhalte abrufen", type="primary", disabled=not selected_books))
+        )
+        if run_generation:
+            st.session_state["auto_generate"] = False
             try:
                 with st.spinner("Suchanfrage wird eingebettet..."):
                     emb = mistral.embeddings.create(model="mistral-embed", inputs=[keyword])
