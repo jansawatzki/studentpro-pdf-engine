@@ -1004,7 +1004,7 @@ with tab2:
                     all_examples = list_examples()
                     example_names = ", ".join(f"**{e['filename']}**" for e in all_examples) if all_examples else "—"
 
-                    if closest_example and closest_example["similarity"] >= 0.5:
+                    if closest_example:
                         example_block = (
                             f"\n\n---\n\n**Beispieldokument als Stilvorlage** "
                             f"(orientiere dich an Aufbau und Tonalität, nicht am Inhalt):\n\n"
@@ -1015,10 +1015,7 @@ with tab2:
                     else:
                         example_block = ""
                         example_note = None
-                        if all_examples:
-                            st.caption(f"📄 Stilvorlagen vorhanden: {example_names} — keine passend zum Thema (Ähnlichkeit < 50 %)")
-                        else:
-                            st.caption("📄 Keine Stilvorlagen hochgeladen")
+                        st.caption("📄 Keine Stilvorlagen hochgeladen")
 
                     with st.spinner("Zusammenfassung wird erstellt (Mistral Large)..."):
                         system_prompt = load_system_prompt()
