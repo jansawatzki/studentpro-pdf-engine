@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-17] Update nextstepsandquality_Claude.md to current state
+
+### Changed
+- `docs/nextstepsandquality_Claude.md` komplett aktualisiert:
+  - Aktueller Stand-Tabelle (was live ist ✅ / was fehlt ❌)
+  - Export als #1 Pflicht-Baustein klar herausgestellt
+  - Zwei-Schritt-Abfrage (sachliche Wiedergabe / Zusammenfassung) als #3 ergänzt
+  - Modelle vergleichen als #7 ergänzt
+  - Rachid-Sektion für Code Review
+  - Priorisierungstabelle auf aktuellen Stand
+
+---
+
 ## [2026-03-17] Three cost types — simplified UI + doc update
 
 ### Changed
