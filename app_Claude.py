@@ -1001,18 +1001,24 @@ with tab2:
 
                     # ── Find closest example for style reference ───────────────
                     closest_example = find_closest_example(query_embedding, subject=subject)
+                    all_examples = list_examples()
+                    example_names = ", ".join(f"**{e['filename']}**" for e in all_examples) if all_examples else "—"
+
                     if closest_example and closest_example["similarity"] >= 0.5:
                         example_block = (
                             f"\n\n---\n\n**Beispieldokument als Stilvorlage** "
                             f"(orientiere dich an Aufbau und Tonalität, nicht am Inhalt):\n\n"
                             f"{closest_example['content'][:4000]}"
                         )
-                        example_note = f"📄 Stilvorlage: **{closest_example['filename']}** (Ähnlichkeit: {closest_example['similarity']:.0%})"
-                        st.caption(f"📄 Stilvorlage wird verwendet: **{closest_example['filename']}** ({closest_example['similarity']:.0%} Ähnlichkeit)")
+                        example_note = f"📄 Stilvorlage verwendet: **{closest_example['filename']}**"
+                        st.caption(f"📄 Stilvorlagen vorhanden: {example_names} — verwendet: **{closest_example['filename']}**")
                     else:
                         example_block = ""
                         example_note = None
-                        st.caption("📄 Kein passendes Beispieldokument gefunden — Zusammenfassung ohne Stilvorlage")
+                        if all_examples:
+                            st.caption(f"📄 Stilvorlagen vorhanden: {example_names} — keine passend zum Thema (Ähnlichkeit < 50 %)")
+                        else:
+                            st.caption("📄 Keine Stilvorlagen hochgeladen")
 
                     with st.spinner("Zusammenfassung wird erstellt (Mistral Large)..."):
                         system_prompt = load_system_prompt()
