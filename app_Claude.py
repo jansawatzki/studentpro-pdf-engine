@@ -1128,11 +1128,13 @@ Das ist der Text, den die KI aus den gefundenen Buchseiten schreibt.
         st.markdown("""
 Es gibt drei Kostenarten:
 
-| | Wofür | Wann | Kosten | Klett Deutsch (109 S.) |
-|---|---|---|---|---|
-| **1. OCR** | Buch lesen (Bild → Text) | einmalig beim Hochladen | ~€0,002 pro Seite | €0,22 |
-| **2. Steckbrief** | Text in Zahlen umwandeln | einmalig beim Hochladen | ~€0,01 pro Buch | €0,004 |
-| **3. Zusammenfassung** | KI schreibt den fertigen Text | einmalig pro Thema | ~€0,01–0,02 | €0,01–0,02 |
+Alle Kosten entstehen bei **Mistral** (mistral.ai) — OCR, Steckbrief und Zusammenfassung laufen alle über Mistral-Modelle.
+
+| | Wofür | Mistral-Modell | Wann | Kosten | Klett Deutsch (109 S.) |
+|---|---|---|---|---|---|
+| **1. OCR** | Buch lesen (Bild → Text) | `mistral-ocr-latest` | einmalig beim Hochladen | ~€0,002 pro Seite | €0,22 |
+| **2. Steckbrief** | Text in Zahlen umwandeln | `mistral-embed` | einmalig beim Hochladen | ~€0,01 pro Buch | €0,004 |
+| **3. Zusammenfassung** | KI schreibt den fertigen Text | `mistral-large-latest` | einmalig pro Thema | ~€0,01–0,02 | €0,01–0,02 |
 
 Nach der ersten Runde kostet jede weitere Abfrage **€0** — alles ist gecacht.
         """)
