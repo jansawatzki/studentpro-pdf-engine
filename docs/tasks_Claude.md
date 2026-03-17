@@ -108,6 +108,8 @@ Source of truth for implementation order. Update status after every completed ta
 - [x] `top_k` fest auf 20, Eingabefeld entfernt
 - [x] Namen (Philipp, Rachid) und Datumsangaben aus App-UI entfernt
 - [x] Überflüssigen `col1` Spalten-Wrapper aufgeräumt
+- [x] Löschen-Button für Bücher (Tab „Bücher hochladen") — löscht aus `documents`
+- [x] Löschen-Button für Lehrplan-PDFs (Tab „Lehrplan hochladen") — löscht aus `topics`
 - [x] `nextstepsandquality_Claude.md` auf aktuellen Stand gebracht (17.03.2026)
 - [x] `cost_tracking_Claude.md` erstellt — 3 Kostenarten, Pricing-Konstanten, DB-Schema, SQL-Abfragen
 - [x] „Was kostet was?" in App: vereinfachte 3-Zeilen-Tabelle mit Beispielkosten + Modellnamen

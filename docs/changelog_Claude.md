@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-17] Löschen-Button für Bücher und Lehrplan-PDFs
+
+### Added
+- `app_Claude.py` Tab „Bücher hochladen": 🗑️ Löschen-Button pro Buch — löscht alle Einträge aus `documents` für diesen Dateinamen
+- `app_Claude.py` Tab „Lehrplan hochladen": 🗑️ Löschen-Button pro Lehrplan-PDF — löscht alle extrahierten Themen aus `topics` für diese Datei
+
+---
+
 ## [2026-03-17] UX cleanup — remove top_k input, names, dates
 
 ### Changed

@@ -541,10 +541,16 @@ with tab1:
                     f"  ·  💰 ${costs['total_cost_usd']:.4f}"
                     if costs.get("total_cost_usd") else ""
                 )
-                if n_chunks > n_pages:
-                    st.write(f"- **{fname}** — {n_pages} Seiten ({n_chunks} Abschnitte){cost_label}")
-                else:
-                    st.write(f"- **{fname}** — {n_pages} Seiten{cost_label}")
+                col_a, col_b = st.columns([6, 1])
+                with col_a:
+                    if n_chunks > n_pages:
+                        st.write(f"**{fname}** — {n_pages} Seiten ({n_chunks} Abschnitte){cost_label}")
+                    else:
+                        st.write(f"**{fname}** — {n_pages} Seiten{cost_label}")
+                with col_b:
+                    if st.button("🗑️ Löschen", key=f"del_book_{fname}"):
+                        supabase.table("documents").delete().eq("filename", fname).execute()
+                        st.rerun()
         else:
             st.write("Noch keine Bücher indexiert.")
     except Exception as e:
@@ -680,7 +686,14 @@ with tab_lehrplan:
             key = (r["source_file"] or "Unbekannt", r["subject"])
             file_counts[key] = file_counts.get(key, 0) + 1
         for (fname, subj), count in sorted(file_counts.items()):
-            st.write(f"- **{fname}** ({subj}) — {count} Themen extrahiert")
+            col_a, col_b = st.columns([6, 1])
+            with col_a:
+                st.write(f"**{fname}** ({subj}) — {count} Themen extrahiert")
+            with col_b:
+                if st.button("🗑️ Löschen", key=f"del_lehrplan_{fname}"):
+                    supabase.table("topics").delete() \
+                        .eq("source", "lehrplan").eq("source_file", fname).execute()
+                    st.rerun()
     else:
         st.write("Noch keine Lehrplan-PDFs verarbeitet.")
 
