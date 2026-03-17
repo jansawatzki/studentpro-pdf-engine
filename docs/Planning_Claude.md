@@ -382,3 +382,112 @@ Standard-RAG allein reicht oft nicht. Folgende Techniken machen den Unterschied:
 
 ### Was am Ende steht (ohne Philipp)
 Ein vollständig laufendes System auf echten NRW-Lehrplan-PDFs, das das Abnahmekriterium (Top-10, ≥ 8/10) bereits erfüllt oder sehr nah dran ist. Wenn Philipp dann Schulbuch-PDFs liefert: Upload-Funktion nutzen, fertig.
+
+---
+
+## 12. Wie du die nächste Projektplanung mit Claude verbesserst
+
+*Rückblick nach Projektabschluss (März 2026). Was hätte die Zusammenarbeit noch effizienter gemacht?*
+
+---
+
+### 1. Entscheidungen sofort schriftlich festhalten
+
+Wenn in einem Call eine Entscheidung fällt — z.B. "wir nutzen DOCX statt JSON" — schreib sie direkt ins Planungsdokument bevor du Claude damit beauftragst. Claude hat kein Gedächtnis über Sessions hinaus. Wenn der Kontext explizit im Dokument steht, muss er nicht aus dem Gesprächsverlauf rekonstruiert werden, und Claude kann sofort in die richtige Richtung arbeiten.
+
+**Formulierung die funktioniert:** "Entscheidung: Export-Format ist DOCX. JSON kommt später wenn die Admin-Panel-API klar ist."
+
+---
+
+### 2. Das "Warum" mitliefern, nicht nur das "Was"
+
+Claude generiert bessere Lösungen wenn es den Kontext kennt. Statt "füge einen Löschen-Button hinzu" lieber: "füge einen Löschen-Button hinzu, weil falsch indexierte Bücher entfernt werden können sollen ohne Datenbankzugriff."
+
+Der Grund dahinter: ohne das Warum wählt Claude die technisch einfachste Lösung. Mit dem Warum wählt Claude die Lösung die zum tatsächlichen Bedarf passt.
+
+---
+
+### 3. Ablehnungen begründen
+
+Wenn Claude etwas vorschlägt das du nicht willst, sag warum. "Fingerabdruck gefällt mir nicht weil ein 12-Jähriger das nicht versteht" gibt Claude eine konkrete Einschränkung die es beim nächsten Vorschlag anwendet. "Gefällt mir nicht" allein erzeugt eine Schleife ohne Fortschritt.
+
+**Faustregel:** Jede Ablehnung = ein Satz der erklärt was fehlt oder was nicht passt.
+
+---
+
+### 4. Architekturentscheidungen früh und explizit treffen
+
+Die wichtigste Architekturfrage in diesem Projekt — "alles in einer Datei (`app_Claude.py`) vs. aufgeteilt in Module" — wurde nie explizit entschieden. Es passierte einfach so. Das ist akzeptabel für einen MVP, aber es bedeutete dass spätere Diskussionen ("sollten wir jetzt splitten?") ohne Grundlage stattfanden.
+
+Beim nächsten Projekt: am Anfang explizit entscheiden und dokumentieren. "Wir bleiben bewusst in einer Datei bis X." Dann ist die Entscheidung klar und kann re-evaluiert werden wenn X eintritt.
+
+---
+
+### 5. Scope-Erweiterungen als bewusste Entscheidungen behandeln
+
+In diesem Projekt wuchs der Scope organisch: Lehrplan-Upload, Beispieldokumente, Cost Tracking, DOCX Export — alles wertvolle Ergänzungen, aber keine wurden als formale Scope-Änderungen dokumentiert. Das Ergebnis: der Akzeptanztest wurde immer wieder verschoben weil immer noch etwas "fehlte".
+
+Für das nächste Projekt: wenn eine neue Funktion hinzukommt, kurz verschriftlichen — "Scope-Erweiterung: wir fügen X hinzu, weil Y. Aufwand: ~Z Stunden. Akzeptanztest verschiebt sich entsprechend."
+
+---
+
+### 6. Claude als Planungspartner nutzen, nicht nur als Code-Produzent
+
+Claude kann in der Planungsphase mehr tun als nur Code schreiben:
+- **Architektur-Review**: "Hier ist mein geplantes Datenmodell. Was fehlt? Was wird sich ändern?"
+- **Risiko-Identifikation**: "Hier ist mein Plan. Was kann schiefgehen?"
+- **Anforderungs-Interview**: "Ich habe ein neues Projekt. Stelle mir die Fragen die ich vergessen haben könnte."
+
+Diese Art der Planung vor dem ersten `git commit` spart mehr Zeit als alles andere.
+
+---
+
+## 13. Allgemeine Konzepte (Entscheidungsgrundlagen)
+
+---
+
+### Warum RAG die richtige Wahl war — und wann sie es nicht wäre
+
+RAG (Retrieval-Augmented Generation) war hier richtig weil:
+- Die Bücher zu groß für direkte LLM-Verarbeitung sind (200MB, 500+ Seiten)
+- Das System regelmäßig genutzt wird — einmal indexieren, viele Abfragen
+- Das Abnahmekriterium messbar sein musste (Top-10, ≥ 8/10)
+
+RAG wäre die **falsche** Wahl wenn:
+- Die Datenmenge klein ist (< 50 Seiten) → direkt ins Context Window
+- Es ein einmaliger Run ist (nicht wiederkehrend) → Batch-Summarization
+- Exakte Volltext-Übereinstimmung wichtiger ist als semantische Ähnlichkeit → reines BM25
+
+---
+
+### Was Chunking ist und warum die Größe wichtig ist
+
+Ein "Chunk" ist ein Textabschnitt der als Einheit gespeichert und abgerufen wird. Zu groß = der Chunk enthält zu viel Nicht-Relevantes, das die Ähnlichkeitsberechnung verwässert. Zu klein = wichtiger Kontext wird abgeschnitten.
+
+Der Kompromiss in diesem Projekt: 1500 Zeichen mit 200 Zeichen Overlap. Das entspricht ~250-300 Wörtern — genug Kontext für einen zusammenhängenden Gedanken, klein genug für präzise Retrieval.
+
+Die **200 Zeichen Overlap** stellen sicher: ein Satz der über eine Chunk-Grenze geht, erscheint in beiden Chunks. Ohne Overlap würden Schlüsselaussagen die zufällig an einer Grenze landen, in keinem Chunk vollständig sein.
+
+---
+
+### Was Cosinus-Ähnlichkeit ist
+
+Wenn zwei Texte verglichen werden, hat jeder einen Vektor — eine Liste von 1024 Zahlen. Cosinus-Ähnlichkeit misst den Winkel zwischen diesen Vektoren:
+- **1.0** = gleiche Bedeutung
+- **0.5** = verwandt
+- **0.0** = keine Verbindung
+
+Der `<=>` Operator in Supabase (pgvector) berechnet genau diese Distanz. "Top-10 Ergebnisse" bedeutet: die 10 Chunks mit dem kleinsten Winkel zum Suchbegriff.
+
+---
+
+### Was der Unterschied zwischen semantischer Suche und Keyword-Suche ist
+
+| | Semantische Suche | Keyword-Suche (BM25) |
+|---|---|---|
+| Findet | Bedeutungs-Ähnliches | Exakte Wortübereinstimmungen |
+| Stärke | "Lyrik" findet auch "Gedicht, Strophe" | "Enjambement" findet genau "Enjambement" |
+| Schwäche | Kann thematisch Ähnliches mit zu wenig Treffsicherheit liefern | Findet nichts wenn der Fachbegriff nicht im Text steht |
+| Einsatz | Standard-Abfragen | Fachterminologie, seltene Begriffe |
+
+Hybrid Search kombiniert beide: semantisch für den Grundabruf, BM25 für Re-Scoring. Das ist der geplante nächste Qualitätssprung.

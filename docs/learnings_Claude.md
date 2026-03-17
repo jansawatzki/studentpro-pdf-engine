@@ -224,3 +224,129 @@ You're not starting from zero. You're starting from "I just shipped a real AI pr
 
 *Last updated: März 2026*
 *Update this file whenever something clicks, or when you feel lost — both are useful data points.*
+
+---
+
+## Part 4 — Technical Concepts from this Project
+
+These are the core technical concepts behind what was built. Reading them once will make the code in `app_Claude.py` much more understandable.
+
+---
+
+### What cosine similarity actually measures
+
+When two texts are compared, each has a vector — a list of 1024 numbers. Cosine similarity measures the angle between those two vectors in 1024-dimensional space:
+
+- **1.0** — identical meaning
+- **0.7–0.9** — closely related (what a good search result looks like)
+- **0.5** — loosely related
+- **0.0** — completely unrelated
+
+The `<=>` operator in Supabase (pgvector) computes this. "Top-10 results" means: the 10 chunks with the smallest angular distance to the query.
+
+Why cosine and not simple distance? Because cosine ignores the *length* of the vector (how many words the text had) and only measures *direction* (what it's about). Two texts of very different lengths can still be highly similar in meaning.
+
+---
+
+### What an RPC (Remote Procedure Call) is
+
+In Supabase, an RPC is a function that runs inside the database server. When the app calls `supabase.rpc("match_documents", {...})`, it doesn't retrieve all rows and filter them in Python — it runs a pre-written PostgreSQL function on the database server, which returns only the final result.
+
+Why this matters: the vector comparison (1024 dimensions × 2000+ rows) would be extremely slow if done in Python. Running it inside the database, using the ivfflat index, is orders of magnitude faster.
+
+---
+
+### What ivfflat means (the index behind vector search)
+
+`CREATE INDEX ... USING ivfflat` — IVF stands for Inverted File with Flat quantization. It is an **approximate nearest-neighbor** algorithm.
+
+Without an index: compare your query vector against every single row — accurate but slow at scale.
+With ivfflat: divide all vectors into N clusters (called "lists"). At query time, search only the most relevant 1–2 clusters. Much faster, with a tiny accuracy trade-off (typically < 1% worse than exact).
+
+At 2000 chunks this is already important. At 50,000 chunks it becomes essential.
+
+---
+
+### What an upsert is
+
+`INSERT ... ON CONFLICT DO UPDATE` — also called "upsert" (update + insert).
+
+- If a row with the same key doesn't exist → insert it
+- If it already exists → update it (or do nothing)
+
+Used throughout the ingestion pipeline. Without it, uploading the same book twice would create duplicate entries. With it, re-uploading is safe and idempotent (same result no matter how many times you run it).
+
+---
+
+### What chunk overlap does
+
+When text is split into chunks of 1500 characters with 200 character overlap:
+
+```
+Chunk 1: characters    0 – 1500
+Chunk 2: characters 1300 – 2800
+Chunk 3: characters 2600 – 4100
+```
+
+The 200-character overlap means a sentence at the end of Chunk 1 also appears at the beginning of Chunk 2. Without overlap, a key concept that happens to land exactly on a split boundary would be incomplete in both chunks — and retrieval would miss it.
+
+---
+
+### What a session state is in Streamlit
+
+Streamlit reruns the entire Python script top to bottom every time the user interacts with anything. `st.session_state` is a dictionary that persists between these reruns within a single browser session.
+
+It was used in this project for two things:
+- `st.session_state["auto_generate"]` — after clicking "Neu generieren", the app reruns and needs to know to start generation immediately, without waiting for another button click
+- `st.session_state["fresh_topic"]` — after a fresh generation, the app reruns to display the result. It needs to know this is fresh (show "✅ Neu generiert") not cached (show "💾 Aus Cache geladen")
+
+Without session state, every rerun would lose this information and the UI would behave incorrectly.
+
+---
+
+### What embedding batching means
+
+When sending text to Mistral Embed, you can send multiple texts in one API call (a "batch") instead of one call per text. In this project, all chunks from one page are embedded in a single batch call.
+
+Why it matters: each API call has a fixed overhead (network latency, authentication). Batching 5 texts in one call is roughly 5× faster than 5 separate calls, and often cheaper. The trade-off: if the batch fails, all texts in it fail together.
+
+---
+
+### What the `processing_log` table is for
+
+The `processing_log` table records the cost of each indexing operation:
+
+| Column | What it records |
+|---|---|
+| `filename` | Which book |
+| `operation` | `ocr` or `embed` |
+| `pages` | How many pages were processed |
+| `tokens_in/out` | Token counts from the API response |
+| `cost_usd` | Calculated cost at the time of processing |
+
+This is separate from the live cost display (which calculates query costs in real time). The log is persistent — you can query it months later to see the total indexing cost per book.
+
+---
+
+### What "idempotent" means
+
+An operation is idempotent if running it multiple times produces the same result as running it once. Examples from this project:
+
+- **Ingestion cache** — uploading the same book twice results in the same data (not duplicates)
+- **Upsert** — inserting the same row twice results in one row, not two
+- **Summary cache** — querying the same topic ten times results in one cache entry, not ten
+
+Idempotency is a design goal in production systems because things fail and get retried. If retrying a failed operation is safe, the system is much easier to operate.
+
+---
+
+### What the difference is between a token and a character
+
+Mistral (and all LLMs) charge by **tokens**, not characters. A token is roughly 3–4 characters in German text — slightly more than in English because German has longer compound words.
+
+Practical implication: a 1500-character chunk is approximately 400–500 tokens. When estimating API costs, the formula is:
+```
+characters ÷ 3.5 ≈ tokens  (German text, approximate)
+```
+
+This matters because Mistral's pricing is per million tokens (e.g. $0.10/1M for embed, $2/1M input for Large). The `prompt_tokens` field in the API response gives the exact count.

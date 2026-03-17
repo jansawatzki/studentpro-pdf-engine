@@ -28,15 +28,17 @@ mistralai==1.10.0
 supabase
 python-dotenv
 openpyxl
+python-docx
 ```
 
 ### What NOT to add
 | Package | Reason |
 |---|---|
 | `pymupdf` | C extension — fails to build on Streamlit Cloud Linux, aborts entire pip install |
-| `python-docx` | Not needed — docx parsing uses stdlib `zipfile` + `xml.etree` |
 
 `pymupdf` is only needed in `ingest_Claude.py` which runs **locally**, never on Streamlit Cloud.
+
+Note: `python-docx` **is** included — it is used for DOCX **generation** (writing Word files), not parsing. It builds cleanly on Linux.
 
 ---
 

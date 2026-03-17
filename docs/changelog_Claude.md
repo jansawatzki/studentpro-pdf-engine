@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-17] Docs cleanup — alle Dokumente auf aktuellen Stand gebracht
+
+### Changed
+- `docs/masterplan_Claude.md` v1.3: Phasen 0e–0h als ✅ markiert, Scope-Tabelle ergänzt, Status auf 2026-03-17 aktualisiert
+- `docs/implementation_Claude.md` v1.2: Live DB-Schema um `examples`, `processing_log`, `settings` ergänzt; Live Features vollständig aktualisiert; `reindex_Claude.py` dokumentiert
+- `docs/design_Claude.md` v1.2: 6-Tab-Struktur, neue Features (Delete-Buttons, DOCX Export, Style References, Cost Display, Neu-generiert-Banner) dokumentiert
+- `docs/deployment_Streamlit_Claude.md`: `python-docx` korrekt als erlaubt eingetragen (DOCX-Generierung, nicht Parsing); `pymupdf`-Hinweis präzisiert
+- `docs/mistral_usage_Claude.md`: "Fingerabdrücke" → "Steckbrief"; spezifische Datumsangaben entfernt
+
+### Added (to historical docs)
+- `docs/Planning_Claude.md`: Abschnitt 12 "Wie du die nächste Projektplanung mit Claude verbesserst" (6 Punkte); Abschnitt 13 "Allgemeine Konzepte" (RAG-Entscheidung, Chunking, Cosinus-Ähnlichkeit, Semantik vs. Keyword)
+- `docs/What_I_Need_To_Build_This_Claude.md`: Abschnitt "Wie du die Anforderungsphase besser gestaltest" (5 Punkte); Abschnitt "Allgemeine Konzepte" (Requirements Engineering, Scope Creep, Akzeptanzkriterien, MVP)
+- `docs/learnings_Claude.md` Part 4: 8 technische Konzepte (Cosinus-Ähnlichkeit, RPC, ivfflat, Upsert, Chunk-Overlap, Session State, Embedding Batching, Idempotenz, Token vs. Zeichen)
+
+---
+
 ## [2026-03-17] Löschen-Button für Bücher und Lehrplan-PDFs
 
 ### Added

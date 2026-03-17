@@ -1,6 +1,6 @@
 # Masterplan — student PRO PDF Retrieval Engine
 
-**Version:** 1.2 | **Created:** 2026-03-04 | **Last updated:** 2026-03-08 | **Owner:** Jan
+**Version:** 1.3 | **Created:** 2026-03-04 | **Last updated:** 2026-03-17 | **Owner:** Jan
 
 ---
 
@@ -76,9 +76,11 @@ Time saved: manually reading 500-page books for every topic would take weeks. Th
 - Re-ranking of retrieval results
 - LLM-generated summaries with page citations (Mistral Large)
 - Binary relevance rating UI (quality check)
-- JSON + CSV export
+- DOCX export (live), JSON + CSV export (planned for admin panel integration)
 - German-language UI (Streamlit)
 - Multi-book search (search across all indexed books simultaneously)
+- Style reference documents (RAG on examples)
+- Cost tracking per book and per query
 
 ### Out of scope (for this project)
 - Teacher-facing interface
@@ -115,14 +117,17 @@ Stack:
 | **0 — Foundation** | Stack running, basic upload + search | ✅ Done |
 | **0b — First real test** | Large PDF indexed, 3 queries pass at 88% | ✅ Done |
 | **0c — Deployment + Caching** | Streamlit Cloud, summary cache, ingestion cache | ✅ Done |
-| **0d — Operator UI** | Subject scoping, book selector, editable prompts, Lehrplan tab, topic DB, EF/GK/LK, keyword matching | ✅ Done |
-| **1 — Pipeline** | Proper chunking, hybrid search, query expansion | ⬜ Next |
-| **2 — Quality** | ≥ 8/10 precision on 5 Deutsch topics | ⬜ Pending acceptance test |
-| **3 — Export + Rating** | Binary rating UI, JSON/CSV export for Philipp's admin panel | ⬜ Planned |
-| **4 — Acceptance** | Rachid review, Philipp sign-off | ⬜ Awaiting |
-| **5 — Scale** | Biologie + Sozialwissenschaften, Mathe books | ⬜ Planned |
+| **0d — Operator UI** | Subject scoping, book selector, editable prompts, Lehrplan tab, topic DB, EF/GK/LK, keyword matching, chunking (2126 chunks) | ✅ Done |
+| **0e — Examples RAG** | Style reference documents, `match_examples` RPC, always-inject closest example | ✅ Done |
+| **0f — Multi-upload** | Multi-file upload in Bücher tab, deployment guide | ✅ Done |
+| **0g — Cost Tracking** | `processing_log` table, cost per book, live cost display after generation | ✅ Done |
+| **0h — DOCX Export** | `generate_docx()` with Markdown parsing, download button in Tab 2 | ✅ Done |
+| **1 — Quality** | Hybrid search (BM25 + semantic), query expansion | ⬜ Next |
+| **2 — Export for admin panel** | JSON/CSV for admin panel integration, binary rating UI | ⬜ Planned |
+| **3 — Acceptance** | Rachid code review, Philipp sign-off on ≥ 8/10 for 5 topics | ⬜ Awaiting |
+| **4 — Scale** | Biologie + Sozialwissenschaften books | ⬜ Planned |
 
-**Current status (2026-03-08):** Phase 0d complete. System is fully operational for Deutsch with 2 books (424 pages), 93 Excel topics + Lehrplan topics in DB. Ready for acceptance test on Deutsch once Philipp reviews.
+**Current status (2026-03-17):** Phases 0–0h complete. System fully operational: 2 books (424 pages, 2126 chunks), DOCX export live, style reference documents, cost tracking. Ready for acceptance test.
 
 ---
 

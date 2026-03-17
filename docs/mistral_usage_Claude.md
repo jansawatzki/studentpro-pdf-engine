@@ -45,7 +45,7 @@ aufgerufen.
 | Aktion | Mistral-Modell | Kosten |
 |---|---|---|
 | Buch zum ersten Mal verarbeiten (OCR) | `mistral-ocr-latest` | ~3–5 € pro Buch |
-| Buch zum ersten Mal einbetten (Fingerabdrücke) | `mistral-embed` | ~0,01 € pro Buch |
+| Buch zum ersten Mal einbetten (Steckbriefe berechnen) | `mistral-embed` | ~0,01 € pro Buch |
 | Lehrplan verarbeiten (OCR + Themen-Extraktion) | `mistral-ocr-latest` + `mistral-large-latest` | ~0,10 € |
 | Beispieldokument hochladen (Fingerabdruck) | `mistral-embed` | ~0,001 € |
 | Thema zum ersten Mal abfragen | `mistral-embed` + `mistral-large-latest` | ~0,05 € |
@@ -57,8 +57,8 @@ Sobald ein Thema einmal abgefragt wurde, speichert das System das Ergebnis in
 Supabase. Jede weitere Abfrage desselben Themas geht direkt aus der Datenbank —
 Mistral sieht davon nichts.
 
-**Beispiel:** Die 3 Testthemen (Sprachvarietäten, Lyrische Texte, Kommunikationsmodelle)
-wurden am 05.03.2026 und 09.03.2026 abgefragt. Seitdem sind alle Folge-Abfragen gecacht.
+**Beispiel:** Die 3 ursprünglichen Testthemen (Sprachvarietäten, Lyrische Texte, Kommunikationsmodelle)
+wurden im März 2026 abgefragt. Seitdem sind alle Folge-Abfragen gecacht.
 Mistral zeigt deswegen keinen laufenden Verbrauch.
 
 ---

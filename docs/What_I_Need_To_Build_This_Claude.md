@@ -116,3 +116,94 @@ But I need to confirm this with you so I can give Philipp an honest cost estimat
 
 ### Once I have all of the above:
 I can build the complete working system. No blockers.
+
+---
+
+## Wie du die Anforderungsphase beim nächsten Projekt besser gestaltest
+
+*Rückblick nach Projektabschluss (März 2026). Was hätte diese Phase effizienter gemacht?*
+
+---
+
+### 1. Output zuerst definieren — dann Input
+
+Die wichtigste Frage in diesem Projekt kam zu spät: "In welchem Format soll die Zusammenfassung heruntergeladen werden?" Das bestimmt alles andere — welche Tabellen du brauchst, welche APIs, welche UI-Komponenten.
+
+Beim nächsten Projekt: Beschreibe zuerst das fertige Endprodukt aus Nutzersicht. "Der Nutzer klickt hier, bekommt das, speichert es dort." Dann rückwärts planen was dafür gebaut werden muss.
+
+---
+
+### 2. "Was ist der teuerste Fehler wenn ich das nicht frage?"
+
+Für jede Zeile in diesem Dokument hätte man diese Frage stellen können. Das Ergebnis wäre eine priorisierte Liste gewesen statt einer gleichwertigen Checkliste.
+
+Beispiel: "Sind die PDFs DRM-geschützt?" — wenn ja, ist das gesamte Projekt unbaubar. Das ist die wichtigste Frage in Part 2 und sollte ganz oben stehen, nicht irgendwo in der Mitte. Beim nächsten Anforderungsdokument: sortiere nach "was blockiert alles andere?"
+
+---
+
+### 3. Akzeptanzkriterien als prüfbare Sätze formulieren
+
+"≥ 8/10 relevant" wurde in diesem Projekt früh vereinbart — das ist gut. Das Problem war, dass "relevant" nie definiert wurde. Wer bewertet? Nach welchen Kriterien? Was passiert wenn das Ergebnis 7/10 ist?
+
+Bessere Formulierung: "Das Projekt ist abgenommen wenn [Wer] [Was konkret tut] und [Messbares Ergebnis] eintritt. Bei < 8/10 wird [Eskalationspfad] eingeschlagen."
+
+---
+
+### 4. Claude als Interviewer nutzen
+
+Statt selbst eine Anforderungsliste zu schreiben, kannst du Claude damit beauftragen. Formulierung die gut funktioniert:
+
+> "Ich plane ein neues Projekt: [1-2 Sätze Beschreibung]. Stelle mir die Fragen die ich beantworten muss bevor wir mit dem Bau beginnen. Priorisiere nach: was blockiert alles andere, was verursacht die teuersten Fehler wenn unklar."
+
+Claude kennt häufige Fallstricke bei ähnlichen Projekten und fragt nach Dingen die du vergessen hast — Authentifizierung, Export-Format, Fehlerszenarien, Skalierung.
+
+---
+
+### 5. Technische Entscheidungen von Produktentscheidungen trennen
+
+Dieses Dokument mischt beides — was Philipp braucht (Produkt) mit welche Technologie dafür (Technik). Das ist für ein einzelnes Projekt okay, erschwert aber die spätere Wiederverwendung.
+
+Für das nächste Projekt: zwei separate Abschnitte. "Was braucht der Nutzer?" ist eine Frage für den Kunden. "Wie bauen wir das?" ist eine Frage für dich und Claude.
+
+---
+
+## Allgemeine Konzepte (Anforderungsphase)
+
+---
+
+### Was Requirements Engineering ist
+
+Requirements Engineering ist die Disziplin, aus vagen Wünschen messbare Anforderungen zu machen.
+
+- **Vage Anforderung:** "Ich will eine App die relevante Schulbuchinhalte findet."
+- **Messbare Anforderung:** "Für jeden der 103 Lehrplan-Themen liefert die App eine Liste von mindestens 10 Buchseiten, von denen ≥ 8 als thematisch relevant bewertet werden."
+
+Der Unterschied: die messbare Anforderung sagt dir wann das Projekt fertig ist. Die vage Anforderung nie.
+
+---
+
+### Was "Scope Creep" ist und warum er passiert
+
+Scope Creep bedeutet: ein Projekt wächst über seinen ursprünglichen Rahmen hinaus, ohne dass Kosten, Zeit oder Qualitätsziele angepasst werden.
+
+In diesem Projekt: das Original-Scope war "OCR → embed → search → summary". Lehrplan-Upload, Beispieldokumente, Cost Tracking, DOCX Export — alles sinnvolle Ergänzungen, alle nicht im ursprünglichen Scope. Das Ergebnis: der Akzeptanztest verzögerte sich, weil immer noch etwas "fehlte."
+
+Scope Creep ist nicht per se schlecht. Schlechte Features die keinen Wert liefern sind schlecht. Der Unterschied: wenn eine Erweiterung bewusst entschieden und dokumentiert wird, bleibt der Überblick erhalten. Wenn sie einfach passiert, verliert man den Bezug zum ursprünglichen Ziel.
+
+---
+
+### Warum der Akzeptanztest vor der Implementierung vereinbart werden muss
+
+Wenn das Abnahmekriterium erst nach dem Bau festgelegt wird, passt es sich dem an was gebaut wurde — nicht dem was gebraucht wird. Das nennt sich "moving the goalposts."
+
+In diesem Projekt war "≥ 8/10" von Anfang an klar und schriftlich vereinbart. Das verhinderte, dass schlechtere Ergebnisse als "gut genug" abgenommen wurden.
+
+---
+
+### Was ein MVP ist (und was es nicht ist)
+
+MVP = Minimum Viable Product. Die kleinste Version eines Produkts die echten Wert für den Nutzer liefert und die Kernhypothese testet.
+
+In diesem Projekt war der MVP: ein Buch indexieren + ein Thema abfragen + Ergebnis anzeigen. Alles andere (Caching, Lehrplan-Upload, Export) sind wertvolle Ergänzungen, aber nicht der MVP.
+
+Die Frage "ist das MVP?" ist ein gutes Werkzeug gegen Scope Creep: wenn die Antwort nein ist, ist die Erweiterung optional und sollte bewusst entschieden werden.

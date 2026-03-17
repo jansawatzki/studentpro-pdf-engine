@@ -1,6 +1,6 @@
 # Implementation Guide — student PRO PDF Retrieval Engine
 
-**Version:** 1.1 | **Created:** 2026-03-04 | **Last updated:** 2026-03-08 | **Owner:** Jan
+**Version:** 1.2 | **Created:** 2026-03-04 | **Last updated:** 2026-03-17 | **Owner:** Jan
 
 ---
 
@@ -11,9 +11,10 @@ This section describes what is actually deployed. Sections 1–5 below describe 
 ### Live DB schema (Supabase)
 
 ```sql
--- Indexed book pages (one row per page)
-documents (id, filename, page_number, content, embedding vector(1024), subject, created_at)
-UNIQUE (filename, page_number)
+-- Indexed book chunks (one row per chunk; multiple chunks per page)
+documents (id, filename, page_number, chunk_index int, content, embedding vector(1024), subject, created_at)
+UNIQUE (filename, page_number, chunk_index)
+-- 424 pages → 2126 chunks (avg ~5 chunks/page, 1500 chars, 200 overlap)
 
 -- Lehrplan topics + Excel topics
 topics (id, topic, subject, course_type, pinned bool, in_lehrplan bool,
@@ -22,43 +23,62 @@ UNIQUE (topic, subject, course_type)
 
 -- Per-topic summary cache
 summary_cache (topic, summary, sources jsonb, hits int, created_at)
+UNIQUE (topic)
 
--- Global editable settings
+-- Style reference documents (RAG on examples)
+examples (id, filename, subject, content, embedding vector(1024), topic_name, created_at)
+UNIQUE (filename)
+
+-- API cost log (one row per OCR/embed operation per book)
+processing_log (id, filename, operation, pages, tokens_in, tokens_out, cost_usd, created_at)
+
+-- Global editable settings (key-value store)
 settings (key TEXT PRIMARY KEY, value TEXT)
 -- keys: 'system_prompt' (summary), 'extraction_prompt' (lehrplan extraction)
 ```
 
-### Live RPC
+### Live RPCs
 
 ```sql
 match_documents(query_embedding vector, match_count int,
                 subject_filter text DEFAULT NULL,
                 filename_filter text[] DEFAULT NULL)
--- Returns top-N pages by cosine similarity, scoped to subject + selected books
+-- Returns top-N chunks by cosine similarity, scoped to subject + selected books
+
+match_examples(query_embedding vector, match_count int DEFAULT 1)
+-- Returns closest style reference document by cosine similarity
 ```
 
 ### Live UI — 5 tabs
 
 | Tab | Purpose |
 |---|---|
-| 📚 Bücher hochladen | Upload PDF → OCR → embed → store; ingestion cache |
-| 📄 Lehrplan hochladen | Upload Lehrplan PDF → OCR → Mistral extracts topics by EF/GK/LK; extraction cache; quality metrics vs. Excel |
-| 🔍 Thema abfragen | Dropdown (from DB) → vector search → Mistral Large summary; summary cache |
+| 📚 Bücher hochladen | Multi-file PDF upload → OCR → chunk → embed → store; ingestion cache; delete button per book |
+| 📄 Lehrplan hochladen | Upload Lehrplan PDF → OCR → Mistral extracts topics by EF/GK/LK; extraction cache; quality metrics; delete button per PDF |
+| 📝 Beispiele hochladen | Upload DOCX/PDF style reference → embed → store; delete button per example |
+| 🔍 Thema abfragen | Dropdown (from DB) → vector search → Mistral Large summary; summary cache; DOCX download |
 | 📋 Projektübersicht | Status, test results, tech stack, cost breakdown |
-| ❓ Wie funktioniert es? | System explanation in German |
+| ❓ Wie funktioniert es? | System explanation in German (two-phase concept, cost table, levers explainer) |
 
 ### Live features
-- Ingestion cache: skip OCR if filename already in `documents`
-- Summary cache: `summary_cache` table, bypass with "🔄 Neu generieren"
-- Lehrplan extraction cache: load from DB if `source_file` already extracted
-- Two editable system prompts stored in `settings`: extraction + summary
-- Subject-scoped search: Deutsch topics only search Deutsch books
-- Book selector: checkboxes per book, grouped by subject
-- Topics colour coding: ★ red = pinned by Philipp · ✓ green = in Kernlehrplan + Excel · plain = Lehrplan only
-- Quality metrics after Lehrplan extraction: Übereinstimmungen vs. Philipps Excel (subject-filtered)
+- **Chunking**: 1500 chars, 200 overlap, `chunk_text()` in `app_Claude.py`
+- **Ingestion cache**: skip OCR if filename already in `documents`
+- **Summary cache**: `summary_cache` table, bypass with "🔄 Neu generieren" (deletes from DB + auto-triggers fresh generation)
+- **Lehrplan extraction cache**: load from DB if `source_file` already extracted
+- **Style references**: closest example always injected into Mistral Large context (no similarity threshold)
+- **Two editable system prompts** stored in `settings`: extraction + summary
+- **Subject-scoped search**: Deutsch topics only search Deutsch books
+- **Book selector**: checkboxes per book, grouped by subject
+- **Topics colour coding**: ★ red = pinned · ✓ green = in Kernlehrplan + Excel · plain = Lehrplan only
+- **Quality metrics** after Lehrplan extraction: keyword-overlap matching (≥55%) vs. Excel topics
+- **Cost tracking**: `processing_log` for OCR + embed; live cost display (embed + chat) after each generation
+- **DOCX export**: `generate_docx()` with Markdown parsing (headings, bold, bullets, sources list)
+- **Delete buttons** for books (`documents` table), Lehrplan PDFs (`topics` table), examples (`examples` table)
+- **Richer generation status**: spinners show which books are searched; captions show which examples are available + used; cost info after generation
 
 ### Live external scripts
 - `ingest_Claude.py` — CLI ingestion for large PDFs (25-page batches, resume logic)
+- `reindex_Claude.py` — re-indexes existing pages as chunks (used for the chunking migration)
 
 ---
 
