@@ -1135,6 +1135,7 @@ Alle Kosten entstehen bei **Mistral** (mistral.ai) — OCR, Steckbrief und Zusam
 | **1. OCR** | Buch lesen (Bild → Text) | `mistral-ocr-latest` | einmalig beim Hochladen | ~€0,002 pro Seite | €0,22 |
 | **2. Steckbrief** | Text in Zahlen umwandeln | `mistral-embed` | einmalig beim Hochladen | ~€0,01 pro Buch | €0,004 |
 | **3. Zusammenfassung** | KI schreibt den fertigen Text | `mistral-large-latest` | einmalig pro Thema | ~€0,01–0,02 | €0,01–0,02 |
+| **Gesamt** | | | | | **~€0,23–0,24** |
 
 Nach der ersten Runde kostet jede weitere Abfrage **€0** — alles ist gecacht.
         """)
