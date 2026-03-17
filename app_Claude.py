@@ -1125,35 +1125,17 @@ Das ist der Text, den die KI aus den gefundenen Buchseiten schreibt.
     st.markdown("---")
 
     with st.expander("💰 Was kostet was?"):
-     st.markdown("""
-Die Kosten entstehen durch drei verschiedene Mistral-Dienste.
-Hier die realen Zahlen — gemessen an echten Verarbeitungen in diesem System:
+        st.markdown("""
+Es gibt drei Kostenarten:
 
-| Was | Wann | Typische Kosten |
-|---|---|---|
-| 📚 **Schulbuch (100 Seiten)** | einmalig beim ersten Upload | ~**€0,20** |
-| 📚 **Schulbuch (300 Seiten)** | einmalig beim ersten Upload | ~**€0,55–0,65** |
-| 📄 **Lehrplan-PDF (~40 Seiten)** | einmalig beim ersten Upload | ~**€0,10** |
-| 📝 **Beispieldokument (.docx)** | einmalig beim Hochladen | < **€0,01** (fast gratis) |
-| 📝 **Beispieldokument (.pdf)** | einmalig beim Hochladen | ~**€0,01** |
-| 🔍 **Thema abfragen (1. Mal)** | einmalig pro Thema | ~**€0,01–0,02** |
-| 🔍 **Thema abfragen (gecacht)** | bei jeder Wiederholung | **€0,00** |
+| | Wofür | Wann | Kosten |
+|---|---|---|---|
+| **1. OCR** | Buch lesen (Bild → Text) | einmalig beim Hochladen | ~€0,002 pro Seite |
+| **2. Steckbrief** | Text in Zahlen umwandeln | einmalig beim Hochladen | ~€0,01 pro Buch |
+| **3. Zusammenfassung** | KI schreibt den fertigen Text | einmalig pro Thema | ~€0,01–0,02 |
 
-**Was steckt hinter den Zahlen?**
-
-- **OCR (Lesen)** kostet ca. 0,18 Cent pro Seite — das ist der größte Posten beim Indexieren
-- **Steckbriefe (Embedding)** kosten fast nichts — ~0,003 € pro Buch
-- **Zusammenfassung (Mistral Large)** kostet ~0,01–0,02 € pro frischer Abfrage
-  (= 10 Buchseiten als Kontext + System-Prompt + generierter Text)
-
-**Faustregel für Philipp:**
-> Ein neues Buch kostet einmalig ca. **0,20 € pro 100 Seiten**.
-> Jedes neue Thema kostet einmalig ca. **0,01–0,02 €**.
-> Alles danach: **gratis** (Cache).
-
-Nach der ersten Runde — alle Bücher indexiert, alle Themen einmal abgefragt —
-läuft das System ohne laufende Kosten, bis neue Bücher oder Themen hinzukommen.
-     """)
+Nach der ersten Runde kostet jede weitere Abfrage **€0** — alles ist gecacht.
+        """)
 
     st.markdown("---")
 

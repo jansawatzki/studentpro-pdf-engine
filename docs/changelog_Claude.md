@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-17] Three cost types — simplified UI + doc update
+
+### Changed
+- `app_Claude.py` Expander „Was kostet was?": ersetzt die lange Tabelle durch 3-Zeilen-Tabelle (OCR / Steckbrief / Zusammenfassung) mit minimaler Erklärung
+- `docs/cost_tracking_Claude.md`: „zwei Arten" korrigiert auf drei — Zusammenfassung als dritte Kostenart ergänzt inkl. Hinweis dass sie noch nicht in processing_log geloggt wird
+
+---
+
 ## [2026-03-16] Explain result levers to Philipp
 
 ### Added

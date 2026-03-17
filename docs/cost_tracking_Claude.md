@@ -2,16 +2,15 @@
 
 ---
 
-## Was wird getrackt?
+## Die drei Kostenarten
 
-Jedes Mal, wenn ein Buch in Tab 1 verarbeitet wird, entstehen zwei Arten von Kosten:
+| | Wofür | Wann | Mistral-Modell | Wie gemessen |
+|---|---|---|---|---|
+| **1. OCR** | Buch lesen (Bild → Text) | einmalig beim Hochladen | `mistral-ocr-latest` | Seiten aus `ocr_response.pages` |
+| **2. Steckbrief** | Text → Zahlenmuster | einmalig beim Hochladen | `mistral-embed` | Tokens aus `emb_resp.usage.prompt_tokens` |
+| **3. Zusammenfassung** | KI schreibt fertigen Text | einmalig pro Thema (dann gecacht) | `mistral-large-latest` | Tokens aus `response.usage` |
 
-| Schritt | Mistral-Modell | Wie gemessen |
-|---|---|---|
-| **OCR** — PDF → Text | `mistral-ocr-latest` | Anzahl Seiten aus `ocr_response.pages` |
-| **Embedding** — Text → Zahlen-Fingerabdruck | `mistral-embed` | Token-Anzahl aus `emb_resp.usage.prompt_tokens` |
-
-Aktuell werden nur Buch-Verarbeitungen geloggt (Tab 1). Lehrplan-Extraktion und Zusammenfassungen (Tab 2) werden noch nicht geloggt.
+Aktuell werden nur OCR und Steckbrief in `processing_log` geloggt (Tab 1). Zusammenfassungs-Kosten (Tab „Thema abfragen") werden noch nicht getrackt.
 
 ---
 
