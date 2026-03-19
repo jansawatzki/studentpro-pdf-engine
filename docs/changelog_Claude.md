@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-19] Rachid_ohne_RAG_Claude.md erstellt
+
+### Added
+- `docs/Rachid_ohne_RAG_Claude.md` — Architektur-Diskussion RAG vs. Long-Context (Rachids Vorschlag via Gemini 2.5 Pro / Opus 4.6 über OpenRouter); Vergleichstabelle, offene DSGVO-Frage, Kostenkalkulation
+
+---
+
 ## [2026-03-17] Docs cleanup — alle Dokumente auf aktuellen Stand gebracht
 
 ### Changed
