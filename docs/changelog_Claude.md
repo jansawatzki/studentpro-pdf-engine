@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-19] Tech_Strategy_Frontends_Claude.md — Metriken + Lovable-Sektion
+
+### Changed
+- `docs/Tech_Strategy_Frontends_Claude.md` — Zwei neue Sektionen hinzugefügt:
+  - **Konkrete Frontend-Tools**: Lovable (empfohlen, native Supabase-Integration, exportierbar), v0 by Vercel, FlutterFlow (mobile), Retool (interne Dashboards), Entscheidungsbaum
+  - **Metriken & Performance-Tracking**: Was messen (End-to-End-Zeit <30s, Cache-Quote, Kosten, Fehlerrate), Realwerte, 3 Optionen (Supabase query_log, PostHog EU, Sentry), Stufenplan, Dashboard-Mockup für Philipp
+
+---
+
 ## [2026-03-19] Tech_Strategy_Frontends_Claude.md + GTM Nachhilfe ergänzt
 
 ### Added
