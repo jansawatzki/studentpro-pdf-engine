@@ -1150,32 +1150,7 @@ so musst du nicht jedes Mal den genauen Thementitel eintippen.
 - **Ohne Markierung** — nur im Kernlehrplan
         """)
 
-    with st.expander("🔍 Schritt 3 — Thema abfragen (jederzeit)"):
-        st.markdown("""
-**Was du tust:** Du wählst ein Thema aus dem Dropdown aus und klickst auf „Relevante Inhalte abrufen".
-
-**Was das System macht — Schritt für Schritt:**
-
-1. **Dein Thema bekommt auch einen Steckbrief** — genau wie die Buchseiten.
-
-2. **Vergleich** — Das System vergleicht den Steckbrief deines Themas mit den Steckbriefen
-   aller gespeicherten Buchseiten. Je ähnlicher die Steckbriefe, desto relevanter die Seite.
-
-3. **Top 10** — Die 10 ähnlichsten Abschnitte werden ausgewählt. Das sind die Fundstellen.
-
-4. **Zusammenfassung schreiben** — Die 10 Abschnitte werden zusammen an Mistral Large geschickt,
-   zusammen mit der Anweisung: *„Schreib eine strukturierte Zusammenfassung für Lehrer in NRW."*
-   Mistral schreibt dann den fertigen Text.
-
-5. **Gespeichert** — Das Ergebnis wird gecacht. Wenn jemand dasselbe Thema nochmal abfragt,
-   kommt die gespeicherte Version zurück — ohne nochmal Mistral zu bezahlen.
-
-**Was sind die „Quellseiten" unten?**
-Das sind die 10 Abschnitte, die das System ausgewählt hat — mit Buchtitel, Seitenzahl und
-Ähnlichkeitsprozentsatz. Du kannst jeden aufklappen und den Originaltext lesen.
-        """)
-
-    with st.expander("📝 Schritt 4 — Beispieldokumente hochladen (optional, aber wichtig)"):
+    with st.expander("📝 Schritt 3 — Beispieldokumente hochladen (optional, aber wichtig)"):
         st.markdown("""
 **Was das ist:** Fertig geschriebene Beispieltexte — so wie die Zusammenfassungen
 am Ende aussehen sollen. Mit Kapiteln (Content 1, Content 2 usw.) im gewünschten Stil.
@@ -1213,6 +1188,31 @@ Mistral sieht also drei Dinge auf einmal:
 
 Der System-Prompt ist editierbar unter ⚙️ im Tab „Thema abfragen" — Änderungen dort gelten sofort
 und werden dauerhaft gespeichert.
+        """)
+
+    with st.expander("🔍 Schritt 4 — Thema abfragen (jederzeit)"):
+        st.markdown("""
+**Was du tust:** Du wählst ein Thema aus dem Dropdown aus und klickst auf „Relevante Inhalte abrufen".
+
+**Was das System macht — Schritt für Schritt:**
+
+1. **Dein Thema bekommt auch einen Steckbrief** — genau wie die Buchseiten.
+
+2. **Vergleich** — Das System vergleicht den Steckbrief deines Themas mit den Steckbriefen
+   aller gespeicherten Buchseiten. Je ähnlicher die Steckbriefe, desto relevanter die Seite.
+
+3. **Top 10** — Die 10 ähnlichsten Abschnitte werden ausgewählt. Das sind die Fundstellen.
+
+4. **Zusammenfassung schreiben** — Die 10 Abschnitte werden zusammen an Mistral Large geschickt,
+   zusammen mit der Anweisung: *„Schreib eine strukturierte Zusammenfassung für Lehrer in NRW."*
+   Mistral schreibt dann den fertigen Text.
+
+5. **Gespeichert** — Das Ergebnis wird gecacht. Wenn jemand dasselbe Thema nochmal abfragt,
+   kommt die gespeicherte Version zurück — ohne nochmal Mistral zu bezahlen.
+
+**Was sind die „Quellseiten" unten?**
+Das sind die 10 Abschnitte, die das System ausgewählt hat — mit Buchtitel, Seitenzahl und
+Ähnlichkeitsprozentsatz. Du kannst jeden aufklappen und den Originaltext lesen.
         """)
 
     st.markdown("---")
