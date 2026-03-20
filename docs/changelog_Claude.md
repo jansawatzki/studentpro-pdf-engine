@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-19] GTM_Philipp_Claude.md erstellt
+
+### Added
+- `docs/GTM_Philipp_Claude.md` — Go-To-Market Strategie: Backend als Infrastruktur-Layer, 3 Märkte (Lehrer, Verlage, andere Bundesländer), Folgeprojekte für Jan (Teacher Frontend, Verlag Dashboard, Multi-Tenant, Admin Panel, API), Pitch-Formulierung, offene Fragen für Philipp-Gespräch
+
+---
+
 ## [2026-03-19] Rachid_ohne_RAG_Claude.md erstellt
 
 ### Added
