@@ -282,6 +282,25 @@ Alle zeigen auf dasselbe Next.js-Deployment auf Vercel, aber mit unterschiedlich
 
 ---
 
+## Strategie: User Stories → Lovable → Demo für Philipp
+
+**Idee:** Für jede von Philipps Ideen (Lehrer-App, Nachhilfe-App, Verlag-Dashboard) eine User Story schreiben, daraus ein Interface in Lovable bauen, und Philipp einen echten Link zeigen — noch bevor eine Zeile eigener Frontend-Code geschrieben ist.
+
+**Warum das funktioniert:**
+- Lovable hat native Supabase-Integration → liest `topics` und `summary_cache` direkt (kein Code)
+- Für die "Neu generieren"-Funktion: ein HTTP-Call zu FastAPI (5 Zeilen)
+- Exportierbarer React-Code → kein Lock-in, nach Demo direkt auf Vercel deploybar
+
+**Reihenfolge:**
+1. User Stories schreiben (was soll der Nutzer sehen und tun können?)
+2. FastAPI-Layer extrahieren aus `app_Claude.py` → Voraussetzung für "Neu generieren"
+3. Lovable: UI beschreiben, Supabase verbinden, FastAPI-Call eintragen
+4. Vercel-Link an Philipp schicken → echter Prototyp, keine PowerPoint
+
+**Geschwindigkeit des HTTP-Calls (Lovable → FastAPI):** Kein relevanter Unterschied zu Streamlit — siehe Abschnitt "Metriken" weiter unten.
+
+---
+
 ## Was das Gespräch mit Philipp ergeben muss
 
 Bevor Jan anfängt zu bauen, muss klar sein:
