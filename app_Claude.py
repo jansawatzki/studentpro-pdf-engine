@@ -1,5 +1,6 @@
 import os
 import re
+import time
 import warnings
 import streamlit as st
 from dotenv import load_dotenv
@@ -319,6 +320,20 @@ def get_cached_summary(topic: str):
         ).eq("topic", topic).execute()
         return row.data[0]["summary"], row.data[0]["sources"]
     return None, None
+
+
+def log_query(topic: str, subject: str, from_cache: bool, duration_ms: int = 0, chunks_found: int = 0, cost_usd: float = 0.0):
+    try:
+        supabase.table("query_log").insert({
+            "topic": topic,
+            "subject": subject,
+            "from_cache": from_cache,
+            "duration_ms": duration_ms,
+            "chunks_found": chunks_found,
+            "cost_usd": cost_usd,
+        }).execute()
+    except Exception:
+        pass  # never break the app
 
 
 def save_cached_summary(topic: str, summary: str, sources: list):
@@ -944,6 +959,8 @@ with tab2:
 
         cached_summary, cached_sources = get_cached_summary(keyword)
         if cached_summary:
+            if st.session_state.get("fresh_topic") != keyword:
+                log_query(keyword, subject, from_cache=True, chunks_found=len(cached_sources) if cached_sources else 0)
             if st.session_state.get("fresh_topic") == keyword:
                 st.success("✅ Neu generiert")
             else:
@@ -978,6 +995,7 @@ with tab2:
         if run_generation:
             st.session_state["auto_generate"] = False
             try:
+                _gen_start = time.time()
                 with st.spinner("Thema wird analysiert (Steckbrief wird berechnet)..."):
                     emb = mistral.embeddings.create(model="mistral-embed", inputs=[keyword])
                     query_embedding = emb.data[0].embedding
@@ -1064,6 +1082,10 @@ with tab2:
                     # Save to cache + mark as freshly generated
                     save_cached_summary(keyword, summary_text, sources)
                     st.session_state["fresh_topic"] = keyword
+                    log_query(keyword, subject, from_cache=False,
+                              duration_ms=int((time.time() - _gen_start) * 1000),
+                              chunks_found=len(chunks),
+                              cost_usd=total_query_cost)
 
                     with st.expander("📝 Zusammenfassung", expanded=True):
                         if example_note:
