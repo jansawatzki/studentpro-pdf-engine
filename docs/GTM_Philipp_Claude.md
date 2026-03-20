@@ -64,13 +64,30 @@ Die eigentliche Frage: Wie wird aus dieser Maschine ein skalierbares Geschäft f
 
 ---
 
-### Markt 3 — Andere Bundesländer / andere Lehrpläne (Skalierung)
+### Markt 3 — Nachhilfeorganisationen (B2B, hohe Zahlungsbereitschaft)
+
+**Was:** Studienkreis, Schülerhilfe, Abacus und ähnliche Organisationen beschäftigen tausende Nachhilfelehrer — viele davon Studenten ohne tiefes Fachwissen. Das größte Problem dieser Organisationen: **Qualitätssicherung der Lernstunden.** Ein Nachhilfelehrer der ad hoc Deutsch EF unterrichtet, braucht in 10 Minuten einen strukturierten Überblick über "Kommunikationsmodelle" — genau das liefert dieses System.
+
+**Philipps Vorteil:** Er hat bereits Kontakte im Bildungsmarkt und kennt das NRW-Curriculum. Studienkreis allein hat ~1.000 Standorte in Deutschland.
+
+**Erlösmodell für Philipp:**
+- Pro-Lehrer-Lizenz (~€5–15/Monat) × tausende Nachhilfelehrer = signifikanter Umsatz
+- Oder: Pauschal-Lizenz pro Organisation (~€500–2.000/Monat)
+- Einstieg: Pilotprojekt mit einem regionalen Standort, dann Rollout
+
+**Was gebaut werden müsste:** Einfaches, mobil-optimiertes Frontend — Nachhilfelehrer schauen kurz vor der Stunde auf dem Handy nach. Kein komplexes Dashboard, nur: Fach → Thema → Zusammenfassung. Das Backend bleibt identisch.
+
+**Warum das attraktiver als Lehrer-Direktvertrieb ist:** Organisationen haben Budgets, Entscheidungsträger und einen klaren ROI ("unsere Lehrer sind besser vorbereitet"). Einzellehrer sind schwer zu erreichen und preis-sensitiv.
+
+---
+
+### Markt 4 — Andere Bundesländer / andere Lehrpläne (Skalierung)
 
 **Was:** Das System ist heute auf NRW-Lehrplan trainiert. Bayern, Baden-Württemberg, Berlin haben eigene Lehrpläne und eigene Schulbücher. Dieselbe Technologie, anderer Content.
 
 **Philipps Vorteil:** Der Aufwand für Bundesland #2 ist 80% kleiner als für Bundesland #1 — das Backend steht, es müssen nur neue Bücher indexiert und neue Lehrpläne hochgeladen werden.
 
-**Erlösmodell:** Pro-Bundesland-Lizenz für Schulen oder Lehrer.
+**Erlösmodell:** Pro-Bundesland-Lizenz für Schulen, Lehrer oder Nachhilfeorganisationen.
 
 ---
 

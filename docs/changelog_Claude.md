@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-19] Tech_Strategy_Frontends_Claude.md + GTM Nachhilfe ergänzt
+
+### Added
+- `docs/Tech_Strategy_Frontends_Claude.md` — Technische Strategie für Frontends: FastAPI-Layer, Next.js, Railway + Vercel Hosting, Multi-Tenancy via Supabase Auth + RLS, Schritt-für-Schritt Aufbauplan, Kostenübersicht (~€5–30/Monat)
+
+### Changed
+- `docs/GTM_Philipp_Claude.md` — Nachhilfeorganisationen als Markt 3 ergänzt (Studienkreis, Schülerhilfe — B2B, hohe Zahlungsbereitschaft, mobil-optimiertes Frontend)
+
+---
+
 ## [2026-03-19] GTM_Philipp_Claude.md erstellt
 
 ### Added
