@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-23] GTM_Philipp — Agentur-Strategie ergänzt
+
+### Changed
+- `docs/GTM_Philipp_Claude.md` — Neue Sektion "Agentur-Projekte": Jan bietet sich als Alternative zu Agenturen an (Email vom 23.03.), Jans Vorteile gegenüber Agenturen dokumentiert, nächste Schritte
+
+---
+
 ## [2026-03-19] Tech_Strategy_Frontends_Claude.md — Metriken + Lovable-Sektion
 
 ### Changed

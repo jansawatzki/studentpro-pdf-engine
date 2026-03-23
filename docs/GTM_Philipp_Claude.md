@@ -142,3 +142,25 @@ Jan sollte sich nicht als "der der die App gebaut hat" positionieren, sondern al
 Der Unterschied: Eine App baut jeder. Eine skalierbare Content-Pipeline die Verlagslizenzen, Lehrpläne und LLMs verbindet — das ist eine strategische Investition die Jan gebaut hat und die nur er schnell erweitern kann.
 
 Das ist die Grundlage für eine langfristige Zusammenarbeit statt für ein einmaliges Projekt.
+
+---
+
+## Agentur-Projekte — Jan als Alternative (Stand 2026-03-23)
+
+**Situation:** Philipp hat noch ~1,5 Monate Fördergelder und spricht gerade mit Agenturen für Marketing- und Design-Projekte. Er sammelt Kostenvoranschläge, ist aber selbst unsicher ob die Agenturen das richtige sind.
+
+**Email von Jan (23.03.2026):** Jan hat sich direkt eingebracht — angeboten, in die Agentur-Projekte eingebunden zu werden. Erwähnt: Design-Kompetenz, GTM-Erfahrung, Kontakt zu Daniel (KI-Berater mit 20 Jahren Agentur-Hintergrund).
+
+**Jans einzigartiger Vorteil gegenüber Agenturen:**
+- Kennt das Produkt von innen — keine Einarbeitungszeit
+- Kann Tech + Design + GTM in einem liefern
+- Kann Prototypen (Lovable) bauen die Agenturen nur als Mockup zeigen würden
+- Versteht den Bildungsmarkt und Philipps Zielgruppen bereits
+- Schneller und günstiger weil kein Overhead
+
+**Was Philipp gerade braucht (aus Meeting + Kontext):**
+- Marketing-Strategie für welche Zielgruppe zuerst (kleinere Nachhilfeorgs)
+- Design/Branding für die verschiedenen Frontends
+- Möglicherweise Hilfe bei der Ansprache erster B2B-Kunden
+
+**Nächster Schritt:** Auf Philipps Antwort warten — wenn er die Agentur-Projekte nennt, konkret anbieten was Jan liefern kann (mit Preis und Zeitrahmen), statt nur "binde mich ein".
