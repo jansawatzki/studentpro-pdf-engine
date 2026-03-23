@@ -1335,7 +1335,6 @@ Alle drei Testthemen landen sofort auf Platz 1. Der formale Abnahmetest (Top-10,
 | **KI-Zusammenfassung** | Mistral Large `mistral-large-latest` | Stark, EU-gehostet |
 | **Oberfläche** | Streamlit | Schnell zu bauen, reicht für internes Tool |
 | **Hosting** | Streamlit Cloud | Auto-Deploy bei jedem GitHub-Push |
-| **Code** | GitHub | Private repo |
 
 **Daten-Fluss in einem Satz:**
 PDF → OCR (Text) → Embed (Zahlen) → Supabase (speichern) → bei Abfrage: Thema embedden → nächste Nachbarn suchen → Mistral Large zusammenfassen → Cache
