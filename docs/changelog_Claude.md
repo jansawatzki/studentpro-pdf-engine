@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-03-24] GTM_Philipp — Vollständiger RFP + konkretes Angebot ausgearbeitet
+
+### Changed
+- `docs/GTM_Philipp_Claude.md` — Philipps vollständiger GTM-RFP dokumentiert (7 Bausteine, 7 Deliverables), Jans konkretes Paket ausgearbeitet (Competitor-Analyse, Personas, Landingpage-Prototyp, KPI-Framework etc.), Email-Thread zusammengefasst, offene Fragen für nächstes Gespräch aktualisiert
+
+---
+
 ## [2026-03-23] GTM_Philipp — Agentur-Strategie ergänzt
 
 ### Changed

@@ -145,22 +145,85 @@ Das ist die Grundlage für eine langfristige Zusammenarbeit statt für ein einma
 
 ---
 
-## Agentur-Projekte — Jan als Alternative (Stand 2026-03-23)
+## Philipps GTM-Auftrag — Vollständiger RFP (Stand 2026-03-24)
 
-**Situation:** Philipp hat noch ~1,5 Monate Fördergelder und spricht gerade mit Agenturen für Marketing- und Design-Projekte. Er sammelt Kostenvoranschläge, ist aber selbst unsicher ob die Agenturen das richtige sind.
+Philipp hat Jan denselben Brief geschickt den er an andere Agenturen schickt. Das ist der genaue Auftrag.
 
-**Email von Jan (23.03.2026):** Jan hat sich direkt eingebracht — angeboten, in die Agentur-Projekte eingebunden zu werden. Erwähnt: Design-Kompetenz, GTM-Erfahrung, Kontakt zu Daniel (KI-Berater mit 20 Jahren Agentur-Hintergrund).
+**Produktbeschreibung laut Philipp:**
+> "student PRO ist eine fast fertig entwickelte Anwendung (native App & Web-App) mit bestehender Content-Pipeline und ausgearbeitetem Design. Der Fokus liegt jetzt auf der strukturierten Vorbereitung des Markteintritts."
 
-**Jans einzigartiger Vorteil gegenüber Agenturen:**
-- Kennt das Produkt von innen — keine Einarbeitungszeit
-- Kann Tech + Design + GTM in einem liefern
-- Kann Prototypen (Lovable) bauen die Agenturen nur als Mockup zeigen würden
-- Versteht den Bildungsmarkt und Philipps Zielgruppen bereits
-- Schneller und günstiger weil kein Overhead
+**Wichtig:** Philipp beschreibt student PRO als **zweiseitigen Marktplatz: Lehrkräfte & Schüler/Eltern**. Das ist breiter als im Demo-Meeting besprochen — die App hat zwei Nutzergruppen.
 
-**Was Philipp gerade braucht (aus Meeting + Kontext):**
-- Marketing-Strategie für welche Zielgruppe zuerst (kleinere Nachhilfeorgs)
-- Design/Branding für die verschiedenen Frontends
-- Möglicherweise Hilfe bei der Ansprache erster B2B-Kunden
+---
 
-**Nächster Schritt:** Auf Philipps Antwort warten — wenn er die Agentur-Projekte nennt, konkret anbieten was Jan liefern kann (mit Preis und Zeitrahmen), statt nur "binde mich ein".
+### Was Philipp konkret sucht (seine 7 Bausteine)
+
+| # | Baustein | Was Jan dazu einbringen kann |
+|---|---|---|
+| 1 | Markt- und Wettbewerbsanalyse EdTech (Nachhilfe, AI-Tutoring, Microlearning) | Kennt den Markt bereits, kann schnell Competitor-Research liefern |
+| 2 | Zielgruppen- und Persona-Definition (Lehrkräfte & Schüler/Eltern) | Kann Personas direkt aus query_log + Produktkenntnissen ableiten |
+| 3 | Positionierung + Angebots- und Monetarisierungsstruktur | Hat bereits GTM-Dokument mit Marktanalyse — Vorsprung gegenüber jeder Agentur |
+| 4 | Conversion- und Funnel-Strategie | Track Record aus letztem Job + eigene Projekte |
+| 5 | Landingpage-/Website-Konzept (inkl. UX/UI-Empfehlungen) | Kann direkt bauen (Lovable/Next.js) — Agenturen liefern nur Mockups |
+| 6 | KPI- und Tracking-Framework | query_log bereits implementiert — kann direkt darauf aufbauen |
+| 7 | Kanalstrategie (Organic, Paid, Kooperationen) | Allgemeine GTM-Kompetenz + LinkedIn Sales Navigator bereits aktiv |
+
+### Deliverables die Philipp erwartet
+
+1. Competitor- und Benchmark-Analyse
+2. Positionierungs- und Differenzierungsansatz
+3. Definierte Personas
+4. Conversion-Blueprint und Funnel-Struktur
+5. Website-/Landingpage-Konzept (inkl. UX/UI-Empfehlungen)
+6. KPI- und Tracking-Konzept
+7. Channel-Mix und Customer-Acquisition-Ansatz
+
+---
+
+## Jans Angebot — Was konkret zu liefern ist
+
+**Jans einzigartiger Vorteil gegenüber jeder Agentur:**
+
+> Jede Agentur braucht 2–3 Wochen Briefing. Jan kann morgen anfangen — er kennt das Produkt, die Datenbank, die Nutzer und den Markt bereits.
+
+Zusätzlich kann Jan etwas das keine Agentur kann: **er liefert nicht nur Konzepte, sondern baut auch direkt**. Ein Landingpage-Konzept von einer Agentur = PowerPoint. Von Jan = funktionierender Prototyp auf Vercel, klickbar, in einer Woche.
+
+### Vorgeschlagenes Paket für Philipp
+
+**GTM-Konzept + Prototyp** (~3–4 Wochen)
+
+| Deliverable | Was Jan liefert | Format |
+|---|---|---|
+| Competitor-Analyse | Top 5–8 Wettbewerber, Positionierungsmatrix, Differenzierung | MD/PDF |
+| Personas | 2–3 Personas (Lehrkraft, Nachhilfelehrer, Schüler/Elternteil) mit Jobs-to-be-done | MD/PDF |
+| Positionierung | Unique Value Proposition, Messaging je Zielgruppe | MD/PDF |
+| Monetarisierung | Preismodelle (B2C Abo, B2B Lizenz, Freemium) mit Empfehlung | MD/PDF |
+| Funnel-Strategie | Acquisition → Activation → Retention je Zielgruppe | MD/PDF |
+| Landingpage | Funktionierender Prototyp (Lovable/Vercel), nicht nur Mockup | Live URL |
+| KPI-Framework | Metriken, Tracking-Setup (auf bestehendem query_log aufbauend) | MD + Code |
+| Kanalstrategie | Organic (SEO/Content), Paid, Kooperationen mit konkreten Empfehlungen | MD/PDF |
+
+**Zeitplan:** Ab Sonntag (Jan zurück vom Schiff) → Kick-off → Lieferung in 3–4 Wochen
+
+---
+
+## Email-Thread Zusammenfassung (Stand 2026-03-24)
+
+| Datum | Von | Inhalt |
+|---|---|---|
+| 23.03. | Jan | Fragt nach Agentur-Projekten, bietet GTM-Hilfe an |
+| 23.03. | Philipp | Schickt unterschriebenes NDA |
+| 24.03. | Philipp | Schickt vollständigen RFP (wie an andere Agenturen) |
+| 24.03. | Jan | Bestätigt GTM-Kompetenz + Track Record, bis Samstag auf Schiff, ab Sonntag verfügbar |
+
+**Status:** Philipp wartet auf Jans konkretes Angebot. Jan muss nach der Rückkehr (ab Sonntag) ein strukturiertes Proposal mit Deliverables und Preis liefern — schneller als die Agenturen.
+
+---
+
+## Offene Fragen für nächstes Gespräch
+
+1. **Zweiseitiger Marktplatz:** Wie weit ist die Schüler/Eltern-Seite entwickelt? Was sehen Schüler in der App?
+2. **Budget:** Was ist Philipps Budget für das GTM-Projekt? (Fördergelder, ~1,5 Monate)
+3. **Timing:** Wann will er mit dem Markteintritt starten — April? Wann läuft die Förderung aus?
+4. **Agenturen:** Mit wie vielen spricht er noch? Was ist sein Entscheidungskriterium?
+5. **Landingpage:** Existiert bereits eine Website oder muss alles neu gebaut werden?
